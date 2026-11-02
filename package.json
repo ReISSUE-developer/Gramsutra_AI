@@ -1,0 +1,8 @@
+{
+  "name": "gramsutra-ai",
+  "version": "1.0.0",
+  "description": "GramSutra AI app with Pragati AI, the intelligent farming companion",
+  "main": "server.js",
+  "scripts": { "start": "node server.js" },
+  "engines": { "node": ">=18" }
+}

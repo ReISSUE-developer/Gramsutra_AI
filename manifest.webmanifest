@@ -1,0 +1,23 @@
+{
+  "name": "GramSutra \u2013 Smart Farming Companion",
+  "short_name": "GramSutra",
+  "description": "A multilingual farming companion for Indian farmers, powered by Pragati AI.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#22d65f",
+  "icons": [
+    {
+      "src": "/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}

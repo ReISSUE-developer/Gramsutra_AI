@@ -1,0 +1,740 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>GramSutra AI</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="/supabase-config.js"></script>
+<script src="/api-config.js"></script>
+<script>/* Empty means this same Node host; for Android/static frontends, configure api-config.js. */window.GRAMSUTRA_API=String(window.GRAMSUTRA_API||'').replace(/\/$/,'');</script>
+<meta name="theme-color" content="#22d65f">
+<meta name="mobile-web-app-capable" content="yes">
+<link href="https://fonts.googleapis.com/css2?family=Mukta:wght@400;600;800&family=Baloo+2:wght@800&display=swap" rel="stylesheet">
+<style>
+:root{color-scheme:light;--bg:#ffffff;--card:#ffffff;--ink:#14281a;--mute:#4d6354;--line:#cfeedb;--green:#22d65f;--gd:#0a7a32;--tint:#e6fbee;--gold:#e3a72f;--red:#c0361f;--blue:#1f5f8b;--on-green:#06260f;
+box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:'Mukta',system-ui,sans-serif;font-size:18px;line-height:1.5}
+header{background:var(--green);color:var(--on-green);padding:16px}
+header h1{margin:0;font-size:24px;font-weight:800}
+header p{margin:2px 0 0;font-size:14px;opacity:.9}
+nav{display:flex;gap:4px;padding:6px 6px calc(6px + env(safe-area-inset-bottom,0px));background:#fff;border-top:2px solid var(--green);position:fixed;left:0;right:0;bottom:0;z-index:5}
+nav button{flex:1;min-height:60px;border:0;background:#fff;color:var(--ink);padding:4px 2px;border-radius:12px;font:inherit;font-size:12.5px;font-weight:600;line-height:1.2;cursor:pointer}
+nav button[aria-selected=true]{background:var(--green);color:var(--on-green);font-weight:800}
+main{max-width:760px;margin:0 auto;padding:14px 14px 110px}
+section{display:none}section.on{display:block}
+.card{background:var(--card);border:2px solid var(--line);border-radius:14px;padding:16px;margin-bottom:14px}
+h2{font-size:20px;margin:0 0 8px}
+h3{font-size:17px;margin:0 0 4px}
+.note{color:var(--mute);font-size:14px}
+label{display:block;font-weight:600;margin:8px 0 2px;font-size:15px}
+input,select{font:inherit;width:100%;min-height:46px;padding:8px 10px;border:2px solid var(--line);border-radius:6px;background:var(--bg);color:var(--ink)}
+.row{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:10px}
+.alert{border-left:6px solid var(--red);background:var(--card);padding:10px 12px;border-radius:6px;margin-bottom:12px;border:1px solid var(--line);border-left-width:6px}
+.alert.ok{border-left-color:var(--green)}
+.alert.warn{border-left-color:var(--gold)}
+.task{border:2px solid var(--line);border-radius:12px;padding:12px;margin-bottom:10px;background:var(--tint)}
+.tag{display:inline-block;font-weight:800;font-size:13px;padding:1px 8px;border-radius:4px;color:#fff;margin-right:6px}
+.U{background:var(--red)}.H{background:#b8741a}.M{background:var(--blue)}
+.why{font-size:15px;color:var(--mute);margin-top:4px}
+.tiles{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:8px;margin-bottom:12px}
+.tile{background:var(--tint);border:2px solid var(--line);border-radius:12px;padding:12px}
+.tile b{display:block;font-size:22px}
+.tbl{overflow-x:auto}
+table{border-collapse:collapse;width:100%;min-width:480px}
+th,td{border-bottom:1px solid var(--line);padding:6px;text-align:left;font-size:15px}
+td input{padding:5px}
+tr.best td{background:var(--tint);font-weight:800}
+.big{font-size:28px;font-weight:800}
+.chk{display:flex;gap:8px;align-items:center;font-weight:400;margin:6px 0}
+.chk input{width:26px;min-height:26px;accent-color:#16a34a}
+.chk{padding:8px;border:2px solid var(--line);border-radius:10px}
+input[type=range]{accent-color:#16a34a;padding:0}
+.hub{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px}
+.mod{font:inherit;text-align:left;background:var(--tint);border:2px solid var(--line);border-radius:14px;padding:12px;min-height:104px;cursor:pointer;color:var(--ink);display:flex;flex-direction:column;gap:2px}
+.mod span{font-size:30px}.mod small{color:var(--mute);font-size:14px}
+.mod:active{background:var(--green)}
+.back{font:inherit;font-weight:700;min-height:44px;border:2px solid var(--green);background:#fff;border-radius:22px;padding:6px 14px;margin-bottom:10px;cursor:pointer;color:var(--ink)}
+.chips button[aria-pressed=true]{background:var(--green);color:var(--on-green)}
+.ngrid{display:grid;grid-template-columns:repeat(10,1fr);gap:2px}
+.cell{aspect-ratio:1;border:1px solid var(--line);background:#fff;border-radius:4px;padding:0;font-size:16px;cursor:pointer}
+.cell.wet{background:#bfe3f7}.cell.path{background:var(--green)}
+.svgw{width:100%;border-radius:10px;border:2px solid var(--line)}
+.hero{background:var(--green);color:var(--on-green);border-radius:18px;padding:16px;margin-bottom:12px}
+.hh{display:flex;justify-content:space-between;align-items:center;gap:8px}
+.hi{font-size:56px;line-height:1}.hg{font-size:22px}
+.hs{display:flex;gap:6px;margin-top:12px;overflow-x:auto}
+.hs div{flex:1;min-width:60px;background:rgba(255,255,255,.6);border-radius:10px;padding:6px;text-align:center;font-size:13px}
+.quick{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:14px}
+.quick button{font:inherit;font-weight:700;font-size:14px;min-height:80px;border:2px solid var(--line);background:#fff;border-radius:14px;cursor:pointer;color:var(--ink);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px}
+.quick span{font-size:28px}
+.tip{background:var(--tint);border:2px solid var(--green)}
+.pbar{height:10px;background:var(--tint);border-radius:8px;overflow:hidden;margin:6px 0 12px}
+.pbar i{display:block;height:100%;background:var(--green)}
+.tk{display:flex;gap:12px;align-items:flex-start;cursor:pointer}
+.tk input{width:28px;min-height:28px;margin-top:4px;accent-color:#16a34a;flex:none}
+.tk.dn{opacity:.6}.tk.dn b{text-decoration:line-through}
+.brand{color:#16a34a;font-family:'Baloo 2','Mukta',system-ui,sans-serif;font-weight:800;font-size:32px;line-height:1.1;letter-spacing:1.5px;text-align:left;margin:2px 0 12px}
+.topbar{display:flex;justify-content:space-between;align-items:center;margin:2px 0 12px}
+.topbar .brand{margin:0}
+#pbtn{width:48px;height:48px;border-radius:50%;border:2px solid var(--green);background:var(--green);color:var(--on-green);display:grid;place-items:center;cursor:pointer;font:inherit;font-size:22px;font-weight:800;padding:0}
+.mbg{position:fixed;inset:0;z-index:60;background:rgba(10,40,20,.5);display:flex;align-items:center;justify-content:center;padding:16px}
+.mbg[hidden],.mbox [hidden]{display:none}
+.mbox{background:#fff;border-radius:18px;padding:20px;width:100%;max-width:420px;max-height:92vh;overflow:auto}
+.mbox h2{margin:0 0 4px}
+.perr{color:var(--red);font-weight:600;min-height:24px;margin:6px 0}
+.pri{font:inherit;font-weight:800;font-size:18px;min-height:50px;width:100%;border:0;border-radius:25px;background:var(--green);color:var(--on-green);cursor:pointer}
+.plink{background:none;border:0;font:inherit;color:var(--gd);font-weight:700;text-decoration:underline;cursor:pointer;min-height:44px;padding:0 10px}
+#splash{position:fixed;inset:0;z-index:50;background:#fff;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;transition:opacity .5s}
+#splash.off{opacity:0;pointer-events:none}
+.logo{width:96px;height:96px;border-radius:28px;background:var(--green);display:grid;place-items:center;font-size:52px}
+#splash h1{margin:0;font-size:32px;font-weight:800}
+#splash p{margin:0;color:var(--mute)}
+.bar{width:180px;height:8px;border-radius:8px;background:var(--tint);overflow:hidden}
+.bar i{display:block;height:100%;width:0;background:var(--green);animation:fill 1.7s ease-out forwards}
+@keyframes fill{to{width:100%}}
+@media (prefers-reduced-motion:reduce){.bar i{animation:none;width:100%}#splash{transition:none}}
+.msgs{max-height:45vh;overflow-y:auto;margin-bottom:6px}
+.msg{padding:10px 12px;border-radius:14px;margin:8px 0;max-width:90%;white-space:pre-wrap}
+.msg.me{background:var(--green);color:var(--on-green);margin-left:auto;font-weight:600}
+.msg.bot{background:#dff1fd;border:2px solid #a9d8f5}
+.msg.tool{font-size:14px;color:var(--mute);border:2px dashed var(--line)}
+.chips{display:flex;flex-wrap:wrap;gap:8px;margin:8px 0}
+.chips button,#go{font:inherit;font-weight:600;min-height:46px;padding:8px 14px;border-radius:23px;border:2px solid var(--green);background:#fff;color:var(--ink);cursor:pointer}
+#go{background:var(--green);color:var(--on-green);font-weight:800}
+#go:disabled{opacity:.5}
+.ask{display:flex;gap:8px}
+.community-grid{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.5fr);gap:12px}
+.people-list{display:grid;gap:8px;max-height:390px;overflow:auto}
+.person{border:1px solid var(--line);border-radius:12px;padding:10px;background:#fff}
+.person p{margin:2px 0;font-size:14px;color:var(--mute)}
+.btn{font:inherit;font-weight:700;border:1px solid var(--green);background:var(--tint);border-radius:10px;padding:8px 12px;min-height:40px;cursor:pointer;color:var(--ink)}
+.btn.primary{background:var(--green);color:var(--on-green)}
+.btn:disabled{opacity:.5;cursor:not-allowed}
+.field{margin:6px 0}
+.field input,.field textarea{width:100%;font:inherit;padding:9px;border:1px solid var(--line);border-radius:9px}
+.chat-log{height:280px;overflow:auto;border:1px solid var(--line);border-radius:12px;padding:10px;background:#fbfffc}
+.chat-bubble{max-width:88%;padding:8px 11px;border-radius:12px;background:#eaf5ed;margin:7px 0;white-space:pre-wrap;overflow-wrap:anywhere}
+.chat-bubble.mine{margin-left:auto;background:#c9f5d5}
+.callbar{display:flex;gap:8px;flex-wrap:wrap;margin:8px 0}
+.call-videos{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.call-videos video{width:100%;background:#102318;border-radius:12px;min-height:130px}
+.status{padding:8px;border-radius:8px;background:var(--tint);font-size:14px}
+@media(max-width:620px){.community-grid{grid-template-columns:1fr}.call-videos{grid-template-columns:1fr}}
+
+:focus-visible{outline:3px solid var(--gold);outline-offset:2px}
+
+/* Home dashboard refresh */
+#home{padding-top:2px}
+.home-intro{display:flex;justify-content:space-between;align-items:center;gap:12px;margin:2px 2px 14px}
+.home-intro h2{font-size:23px;margin:0;letter-spacing:-.3px}
+.home-intro p{margin:0;color:var(--mute);font-size:14px}
+.hero{position:relative;overflow:hidden;background:linear-gradient(135deg,#087b36 0%,#19b653 58%,#8cdb65 100%);color:#fff;border:0;border-radius:22px;padding:20px;margin-bottom:14px;box-shadow:0 10px 24px rgba(8,123,54,.16)}
+.hero:after{content:'🌾';position:absolute;right:14px;bottom:-22px;font-size:112px;opacity:.14;transform:rotate(-12deg);pointer-events:none}
+.hh{position:relative;z-index:1;align-items:flex-start}.hg{display:block;font-size:24px;line-height:1.2}.hero .hi{font-size:48px;background:rgba(255,255,255,.16);border:1px solid rgba(255,255,255,.25);border-radius:18px;width:66px;height:66px;display:grid;place-items:center;flex:none}.hero .hh div div{font-size:14px;opacity:.9;margin-top:5px}.hero>p{position:relative;z-index:1;max-width:82%;font-size:15px;line-height:1.4}
+.hs{position:relative;z-index:1;gap:7px;margin-top:16px}.hs div{background:rgba(255,255,255,.17);border:1px solid rgba(255,255,255,.2);color:#fff;backdrop-filter:blur(4px);padding:8px 5px}.hs b{font-size:18px}
+#banner .alert{border-radius:13px;padding:11px 14px;font-size:14px;margin-bottom:14px}
+.quick{grid-template-columns:repeat(3,minmax(0,1fr));gap:9px;margin:0 0 16px}.quick button{min-height:88px;border:1px solid #dceee1;background:linear-gradient(180deg,#fff,#f7fcf8);box-shadow:0 3px 10px rgba(20,60,30,.045);border-radius:16px;font-size:13px}.quick button span{font-size:27px}.quick button:active{transform:scale(.98);background:var(--tint)}
+#tiles{grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin-bottom:14px}.tile{border:1px solid #d9ecdf;border-radius:15px;padding:11px;background:#f5fbf6;min-width:0;font-size:12px;color:var(--mute)}.tile b{font-size:19px;line-height:1.2;color:var(--ink);margin:4px 0;overflow-wrap:anywhere}.tile .tile-sub{font-size:11px;color:var(--mute)}
+#tip .card{border:1px solid #d5ead9;border-radius:17px;padding:15px;box-shadow:0 4px 14px rgba(20,60,30,.04)}#tip h3{font-size:17px}#tip p{font-size:14px;line-height:1.5}#tip .back{font-size:13px;min-height:40px;padding:5px 12px}
+.home-card{border:1px solid #e0ece3;border-radius:17px;padding:15px;box-shadow:0 4px 14px rgba(20,60,30,.035)}
+#home .task{border:1px solid #e0ece3;background:#fbfefb;border-radius:13px;padding:11px}#home .tag{font-size:10px;letter-spacing:.3px}
+#home details{border:1px solid #e0ece3;border-radius:14px;padding:12px 14px;margin:12px 0;background:#fff}#home summary{font-weight:800;cursor:pointer;font-size:14px}
+@media(min-width:600px){#home .quick{grid-template-columns:repeat(6,minmax(0,1fr))}#home .hero{padding:24px}.hero .hi{width:76px;height:76px}}
+@media(max-width:380px){#tiles{grid-template-columns:1fr 1fr}#tiles .tile:last-child{grid-column:span 2}.quick{gap:6px}.quick button{font-size:12px}}
+
+
+/* GramSutra satellite-first dashboard */
+body{background:#f5faf6;font-size:16px}header{background:#fff;color:var(--ink)}
+main{max-width:none;margin:0;padding:18px 20px 96px 250px}
+.topbar{position:fixed;z-index:8;top:0;left:0;right:0;height:82px;background:#fff;border-bottom:1px solid #e5eee7;padding:12px 24px 12px 260px;margin:0;box-shadow:0 2px 12px #163d1b0a}
+.top-location{font-size:16px;font-weight:800;color:#203a2a;margin-left:34px}.top-weather{margin-left:auto;display:flex;align-items:center;gap:8px;color:#294633}.top-weather small{display:block;font-size:12px;color:#647568}.top-weather b{font-size:17px}
+.topbar .brand{position:fixed;left:22px;top:20px;font-size:25px;color:#087d36}
+.topbar #pbtn{margin-left:22px;flex:none;width:48px;height:48px;background:#e7f8eb;color:#087d36;border:1px solid #d0ebd7}
+#nav{position:fixed;z-index:9;left:0;top:82px;bottom:0;width:232px;display:flex;flex-direction:column;align-items:stretch;justify-content:flex-start;gap:6px;padding:24px 12px;background:#fff;border-top:0;border-right:1px solid #e3eee5}
+#nav button{flex:none;min-height:48px;text-align:left;padding:8px 16px;border-radius:13px;font-size:15px;line-height:1.3}
+#nav button[aria-selected=true]{background:linear-gradient(100deg,#08a53d,#55d16f);color:white}
+#home{padding-top:82px}.home-intro{display:none}
+#home .dash-map-layout{display:grid;grid-template-columns:minmax(0,2.15fr) minmax(260px,.8fr);gap:14px;margin-bottom:14px}
+#home .map-panel{position:relative;min-height:420px;border-radius:22px;overflow:hidden;background:#17452a;box-shadow:0 5px 18px #1d4a2b20}
+#home .map-panel img{width:100%;height:100%;min-height:420px;object-fit:cover;display:block}
+#home .map-label{position:absolute;top:16px;left:16px;background:#10281ddf;color:#fff;padding:9px 14px;border-radius:25px;font-weight:800}
+#home .map-note{position:absolute;bottom:14px;left:14px;background:#10281ddd;color:#fff;border-radius:12px;padding:7px 12px;font-size:12px}
+#home .condition-panel{border:1px solid #e0eee3;border-radius:22px;background:#fff;padding:18px;box-shadow:0 5px 18px #1d4a2b12}
+#home .condition-panel h2{font-size:20px;margin:0 0 16px}
+#home .condition-row{display:flex;align-items:center;gap:10px;margin:14px 0;font-size:15px}
+#home .condition-row b{margin-left:auto}
+#home .dot{width:16px;height:16px;border-radius:50%;display:inline-block;flex:none}
+#home .ai-insight{margin-top:20px;border-radius:18px;padding:16px;background:linear-gradient(135deg,#effbea,#e2f8e7);border:1px solid #d8f0dc}
+#home .ai-insight p{margin:8px 0 14px}
+#home .ai-insight button{background:#079a37;color:white;border:0;border-radius:22px;padding:9px 16px;font:inherit;font-weight:800;cursor:pointer}
+#home .quick{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:10px;margin:0 0 14px}
+#home .quick button{min-height:84px;border:1px solid #dceee1;background:#fff;border-radius:16px;font-size:14px;box-shadow:0 3px 12px #163d1b09}
+#home .quick button span{font-size:26px}
+#home .metric-row{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:10px;margin:14px 0}
+#home .metric{background:linear-gradient(140deg,#fff,#eff9f1);border:1px solid #dceee1;border-radius:18px;padding:15px;min-width:0}
+#home .metric small{display:block;color:#526a59;font-size:13px}
+#home .metric strong{display:block;font-size:23px;line-height:1.2;margin-top:8px;overflow-wrap:anywhere}
+#home .metric .meter{height:8px;border-radius:8px;background:#dcece0;margin-top:10px;overflow:hidden}
+#home .metric .meter i{display:block;height:100%;background:#16ad4b;border-radius:8px}
+#home .home-card{background:#fff;border:1px solid #e0ece3;border-radius:18px}
+#home .task{border:1px solid #e0ece3;background:#fbfefb;border-radius:13px;padding:11px}
+#home #banner,#home #tiles{display:none}
+#home #hero{display:none}
+#home #tip{display:none}
+@media(max-width:900px){main{padding-left:16px;padding-right:16px}.topbar{padding-left:18px}.top-location{display:none}.top-weather{margin-left:auto}.topbar .brand{position:static}#nav{display:none}nav#nav{display:none}body{padding-top:70px}.topbar{height:70px}#home{padding-top:0}#home .dash-map-layout{grid-template-columns:1fr}#home .map-panel,#home .map-panel img{min-height:330px}#home .condition-panel{display:grid;grid-template-columns:1fr 1fr;gap:0 14px}#home .condition-panel h2,#home .ai-insight{grid-column:1/-1}#home .metric-row{grid-template-columns:repeat(3,minmax(0,1fr))}#home .quick{grid-template-columns:repeat(3,minmax(0,1fr))}}
+@media(max-width:560px){main{padding:8px 10px 90px}.topbar{padding:10px 14px}.topbar .brand{font-size:22px}#home .map-panel,#home .map-panel img{min-height:260px}#home .condition-panel{display:block;padding:14px}#home .metric-row{grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}#home .metric{padding:12px}#home .metric strong{font-size:20px}#home .quick{gap:7px}#home .quick button{min-height:76px;font-size:12px}nav#nav{display:flex;position:fixed;left:0;right:0;top:auto;bottom:0;width:auto;height:auto;flex-direction:row;justify-content:space-around;padding:6px;background:#fff;border-top:1px solid #dceee1;border-right:0;z-index:20}nav#nav button{flex:1;min-height:54px;text-align:center;padding:4px 2px;font-size:11px}}
+
+</style>
+
+<style>
+textarea{font:inherit;width:100%;padding:9px 10px;border:2px solid var(--line);border-radius:8px;resize:vertical;background:#fff;color:var(--ink)}
+.field-legend{display:flex;flex-wrap:wrap;gap:12px;margin:8px 0;font-size:13px;font-weight:700}
+.market-head{display:flex;align-items:center;justify-content:space-between;gap:10px}
+.scheme-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:10px}
+.scheme{border:1px solid var(--line);border-radius:12px;padding:13px;background:#fbfffc}
+.scheme a{font-weight:800;color:#087b32;text-decoration:none}
+.listing{border:1px solid var(--line);border-radius:14px;padding:13px;margin:10px 0;background:#fbfffc}
+.listing h3{margin:0 0 5px}.listing .meta{color:var(--mute);font-size:13px}.listing .price{font-size:20px;font-weight:800;color:#087b32}
+#fieldhealth .leaflet-container{font:inherit;z-index:1}.field-legend span{white-space:nowrap}
+#marketplace .card{margin-bottom:12px}
+@media(max-width:600px){#fieldMap{height:300px!important}.scheme-grid{grid-template-columns:1fr}}
+</style>
+
+<link rel="manifest" href="/manifest.webmanifest">
+</head>
+<body>
+<div class="mbg" id="modal" hidden role="dialog" aria-modal="true" aria-labelledby="mt"><div class="mbox">
+ <div id="lv"><h2 id="mt">Welcome to GramSutra</h2><p class="note">Create your profile so Pragati AI can help you by name. Demo login: no password yet, saved only on this phone.</p>
+  <label for="pn">Your name</label><input id="pn" autocomplete="name">
+  <label for="pm">Mobile number</label><input id="pm" inputmode="numeric" maxlength="10" autocomplete="tel" placeholder="10 digits">
+  <label for="pv">Village</label><input id="pv" value="Rampur">
+  <label for="pr">I am a</label><select id="pr"><option>Farmer</option><option>Cooperative member</option><option>Rural entrepreneur</option><option>Agriculture expert</option></select>
+  <label for="pl">Language</label><select id="pl"><option>English</option><option>Hindi</option><option>Bengali</option><option>Telugu</option><option>Marathi</option><option>Tamil</option><option>Gujarati</option><option>Kannada</option><option>Malayalam</option><option>Punjabi</option><option>Odia</option><option>Assamese</option><option>Urdu</option></select>
+  <p class="perr" id="perr" role="alert"></p>
+  <button class="pri" id="psave">Login</button><div style="text-align:center"><button class="plink" id="pguest">Continue as guest</button></div></div>
+ <div id="pv2" hidden><h2>Your profile</h2><div id="pinfo"></div>
+  <button class="pri" id="pedit">Edit profile</button><div style="text-align:center"><button class="plink" id="pout">Log out</button><button class="plink" id="pclose">Close</button></div></div>
+</div></div>
+<div id="splash" role="status" aria-label="Loading GramSutra AI"><div class="logo">🌾</div><h1>GramSutra AI</h1><p>Your village, your farm, one plan</p><div class="bar"><i></i></div></div>
+<nav role="tablist" id="nav"></nav>
+<main>
+<div class="topbar"><div class="brand">🌿 GramSutra</div><div class="top-location">📍 <span id="top-village">Set your village</span></div><div class="top-weather">🌤️ <b>--°C</b><small>Live weather not loaded</small></div><button id="pbtn" aria-label="Log in"></button></div>
+
+<section id="home">
+  <div class="home-intro"><div><h2>Your farm dashboard</h2><p>Satellite view and field health at a glance.</p></div></div>
+  <div id="hero"></div><div id="banner"></div>
+  <div class="quick" id="quick"></div>
+  <div class="dash-map-layout">
+    <div class="map-panel"><img src="/farm-satellite-demo.jpg" alt="Illustrative satellite-style farm map with red, yellow and green field health zones"><div class="map-label">📍 <span id="map-village">Your village · Field health</span></div><div class="map-note">Illustrative satellite-style preview · connect field imagery for live analysis</div></div>
+    <aside class="condition-panel"><h2>🌿 Farm condition <span style="float:right;color:#0a9d3b;font-size:13px">● Demo</span></h2>
+      <div class="condition-row"><i class="dot" style="background:#ff493e"></i> Poor condition <b>12%</b></div>
+      <div class="condition-row"><i class="dot" style="background:#ff8a36"></i> Needs attention <b>28%</b></div>
+      <div class="condition-row"><i class="dot" style="background:#ffdc54"></i> Moderate health <b>35%</b></div>
+      <div class="condition-row"><i class="dot" style="background:#a7df4c"></i> Healthy <b>15%</b></div>
+      <div class="condition-row"><i class="dot" style="background:#18a84b"></i> Excellent <b>10%</b></div>
+      <div class="ai-insight"><h3>💡 AI insight (Pragati AI)</h3><p id="insight-text">Your northern field shows crop stress. Consider irrigation and check for pests.</p><button data-go="ask">View details →</button></div>
+    </aside>
+  </div>
+  <div class="metric-row" id="metric-row"></div>
+  <div class="tiles" id="tiles"></div><div id="tip"></div>
+  <div class="card home-card"><h2>✅ Your action plan</h2><p class="note" style="margin-top:-4px">A short list to help you prioritise today's farm work.</p><div id="prog"></div><div id="plan"></div><p class="note">Decision support only. Check local conditions and official advisories before acting.</p></div>
+  <details><summary>⚙️ Adjust demo conditions</summary><p class="note">These controls are only for testing the action-plan rules. They are not live weather or a verified crop profile.</p><div class="row"><div><label for="rain">Rain chance today (demo control): <span id="rainv"></span>%</label><input type="range" id="rain" min="0" max="100" value="0"></div><div><label for="stage">Example crop stage</label><select id="stage"><option value="mature">Mature (harvest ready)</option><option value="flower">Flowering</option><option value="young">Young plants</option></select></div><div><label for="feed">Weather data feed</label><select id="feed"><option value="0">Live data not loaded</option><option value="1">Demo inputs only</option></select></div></div></details>
+</section>
+
+<section id="weather">
+  <div class="card"><h2><svg width="32" height="26" viewBox="0 0 64 52" aria-hidden="true" style="vertical-align:middle"><path d="M18 38a10 10 0 0 1 0-20 14 14 0 0 1 27-3 11 11 0 0 1 2 23z" fill="#9bd6f7"/></svg> Weather and risk</h2><div id="wx"></div></div>
+  <div class="card"><h3>Sensor check (station anomaly)</h3>
+    <div class="row"><div><label for="tmp">Temperature °C</label><input type="number" id="tmp" value="31"></div>
+    <div><label for="hum">Humidity %</label><input type="number" id="hum" value="62"></div>
+    <div><label for="nbr">Nearby station °C</label><input type="number" id="nbr" value="30"></div></div>
+    <p id="anom" class="big"></p><p class="note">Uses range limits and comparison with a neighbouring station.</p></div>
+</section>
+
+<section id="crop">
+  <div class="card"><h2>🍅 Crop helper</h2>
+    <p class="note">Tomato leaves turning yellow. Tick what you see.</p>
+    <label class="chk"><input type="checkbox" class="sy" value="old"> Older, lower leaves yellow first</label>
+    <label class="chk"><input type="checkbox" class="sy" value="wet"> Soil stays wet or water stands</label>
+    <label class="chk"><input type="checkbox" class="sy" value="bug"> Insects or webbing under leaves</label>
+    <label class="chk"><input type="checkbox" class="sy" value="spot"> Brown spots with rings</label>
+    <label class="chk"><input type="checkbox" class="sy" value="dry"> Leaves curl and soil is dry</label>
+    <div id="cropout"></div></div>
+</section>
+
+<section id="market">
+  <div class="card"><h2>💰 Which buyer pays you most?</h2>
+    <label for="qty">Quantity (kg)</label><input type="number" id="qty" value="500" min="0">
+    <div class="tbl"><table><thead><tr><th>Buyer</th><th>₹/kg</th><th>Transport ₹</th><th>Handling ₹</th><th>Net return</th></tr></thead><tbody id="buy"></tbody></table></div>
+    <p class="note">Example offers only. Net return = (quantity × price) − (transport + handling). Use Live mandi prices below and confirm an actual buyer quote before selling.</p>
+    <p id="mout" class="big"></p></div>
+</section>
+
+<section id="biz">
+  <div class="card"><h2>🧮 Business planner</h2>
+    <div class="row">
+      <div><label for="u">Units</label><input type="number" id="u" value="100"></div>
+      <div><label for="p">Price per unit ₹</label><input type="number" id="p" value="25"></div>
+      <div><label for="cm">Materials ₹</label><input type="number" id="cm" value="1200"></div>
+      <div><label for="cl">Labour ₹</label><input type="number" id="cl" value="500"></div>
+      <div><label for="ct">Transport ₹</label><input type="number" id="ct" value="300"></div>
+    </div><div id="bout" style="margin-top:10px"></div></div>
+</section>
+<section id="hub">
+ <div class="card"><h2>🧰 All features</h2><p class="note">Tap a tile to open a tool. Live services show their source and require setup where noted; demo content is labelled.</p><div class="hub" id="modgrid"></div></div>
+</section>
+
+<section id="sat"><div class="card"><h2>🛰️ Satellite map</h2>
+ <div class="chips"><button data-sl="obs">Observed image</button><button data-sl="ai">AI-enhanced view</button></div>
+ <svg id="svg" class="svgw" viewBox="0 0 300 180" role="img" aria-label="Satellite map of fields, pond and road"></svg>
+ <p id="slnote" class="note"></p></div></section>
+
+<section id="gis"><div class="card"><h2>Village map: Rampur</h2>
+ <button class="back" id="currentLocation">◎ Use my current location</button><p id="locationResult" class="note">Location is optional and is only requested when you tap the button.</p>
+ <label for="plot">Choose your plot</label><select id="plot"></select>
+ <p id="plotinfo" class="big" style="font-size:19px"></p>
+ <h3>Village services (sample)</h3><ul><li>Health centre: 2 km</li><li>Mandi: 12 km</li><li>Krishi Kendra: 5 km</li><li>Cold storage: 9 km</li></ul>
+ <a class="back" style="display:inline-block;text-decoration:none" href="https://dilrmp.gov.in/" target="_blank" rel="noopener">Open official land records portal</a>
+ <p class="note">Map details are for orientation and decision support only. They are not a legal land title.</p></div></section>
+
+<section id="coop">
+ <div class="card"><h2>🤝 Group selling</h2>
+  <div class="row"><div><label for="gm">Members selling</label><input type="number" id="gm" value="8"></div><div><label for="gk">Average kg each</label><input type="number" id="gk" value="150"></div></div>
+  <p class="big" id="gtot"></p><button class="back" id="guse">Compare buyers for this amount</button></div>
+ <div class="card"><h2>Cooperative questions</h2>
+  <input id="fq" placeholder="Search: member, vote, loan, dispute" aria-label="Search questions"><div id="faq" style="margin-top:10px"></div>
+  <button class="back" id="fqa">Ask the assistant</button></div></section>
+
+<section id="robot"><div class="card"><h2>🚜 Robot route demo</h2>
+ <p class="note">Tap squares to add or remove flooded spots. The route updates by itself.</p>
+ <div class="ngrid" id="ngrid"></div><p class="big" id="nout" style="font-size:20px"></p>
+ <p class="note">Simulation for learning. It is not real robot hardware.</p></div></section>
+
+<section id="ask">
+ <div class="card"><h2>🤖 Ask Pragati AI</h2>
+ <p><b>Pragati AI: Your Farming Companion</b></p>
+ <p class="note">Ask in English or Hindi, or tap 🎤 and speak. I can check your farm, compare buyers, open screens and change the app for you. I give guidance only.</p>
+ <div id="msgs" class="msgs" aria-live="polite"></div>
+ <div class="ask"><input id="q" placeholder="Type your question" aria-label="Your question"><button id="mic" class="back" style="margin:0" aria-label="Speak your question">🎤</button><button id="go">Send</button></div></div>
+</section>
+
+<section id="community">
+ <div class="card"><h2>GramSutra Community</h2><p class="note">Meet farmers and agriculture experts, build trusted connections, and communicate privately.</p>
+  <div id="communityStatus" class="status" role="status">Connect to Supabase to activate the community.</div>
+  <div id="communityAuth" class="card">
+   <h3>Sign in or create your farmer account</h3>
+   <div class="field"><label for="communityName">Display name (for new accounts)</label><input id="communityName" autocomplete="name" placeholder="Your name"></div>
+   <div class="field"><label for="communityVillage">Village / district</label><input id="communityVillage" placeholder="Village, district"></div>
+   <div class="field"><label for="communityRole">I am a</label><select id="communityRole"><option>Farmer</option><option>Cooperative member</option><option>Rural entrepreneur</option><option>Agriculture expert</option></select></div>
+   <div class="field"><label for="communityLanguage">Preferred language</label><select id="communityLanguage"><option>English</option><option>Hindi</option><option>Bengali</option><option>Telugu</option><option>Marathi</option><option>Tamil</option><option>Gujarati</option><option>Kannada</option><option>Malayalam</option><option>Punjabi</option><option>Odia</option><option>Assamese</option><option>Urdu</option></select></div>
+   <div class="field"><label for="communityEmail">Email</label><input id="communityEmail" type="email" autocomplete="email" placeholder="you@example.com"></div>
+   <div class="field"><label for="communityPassword">Password (minimum 8 characters)</label><input id="communityPassword" type="password" autocomplete="current-password" minlength="8"></div>
+   <div class="callbar"><button class="btn primary" id="communitySignup">Create account</button><button class="btn" id="communitySignin">Sign in</button></div>
+   <p class="note">Email confirmation may be required depending on your Supabase authentication settings. Use a strong, unique password.</p>
+  </div>
+  <div id="communityApp" hidden>
+   <div class="callbar"><b id="communityMe"></b><button class="btn" id="communityRefresh">Refresh people</button><button class="btn" id="communitySignout">Sign out</button></div>
+   <div class="community-grid">
+    <div class="card"><h3>Find people</h3><div class="field"><input id="peopleSearch" placeholder="Search name or village"></div><div id="peopleList" class="people-list"></div><h3 style="margin-top:14px">Connection requests</h3><div id="requestList" class="people-list"></div><h3 style="margin-top:14px">My connections</h3><div id="connectionList" class="people-list"></div></div>
+    <div class="card"><h3 id="chatTitle">Private messages</h3><div id="chatLog" class="chat-log" aria-live="polite"><p class="note">Choose an accepted connection to start chatting.</p></div>
+     <div class="ask" style="margin-top:8px"><input id="communityMessage" placeholder="Write a private message" maxlength="5000"><button class="btn primary" id="communitySend">Send</button></div>
+     <div class="callbar"><button class="btn primary" id="voiceCall">☎ Voice call</button><button class="btn primary" id="videoCall">▣ Video call</button><button class="btn" id="hangupCall">End call</button></div>
+     <div id="callStatus" class="status">Calls are peer-to-peer. Allow microphone or camera when asked.</div>
+     <div class="call-videos"><video id="localVideo" autoplay playsinline muted></video><video id="remoteVideo" autoplay playsinline></video></div>
+    </div>
+   </div>
+  </div>
+ </div>
+</section>
+
+<section id="cropai">
+ <div class="card"><h2>📷 Pragati AI · Crop photo check</h2><p class="note">Upload a clear photo of the affected leaf, stem or fruit. Pragati AI will list possible causes and safe next steps; this is not a confirmed diagnosis.</p>
+  <label for="diagnoseCrop">Crop</label><input id="diagnoseCrop" placeholder="e.g. wheat, tomato, rice">
+  <label for="diagnoseNotes">What are you noticing?</label><textarea id="diagnoseNotes" rows="3" placeholder="When did it start? Which part of the field is affected?"></textarea>
+  <label for="diagnoseImage">Crop photo (JPEG, PNG or WEBP, under 7 MB)</label><input id="diagnoseImage" type="file" accept="image/jpeg,image/png,image/webp,image/gif">
+  <button class="btn primary" id="diagnoseBtn">Analyse crop photo</button><div id="diagnoseStatus" class="status" aria-live="polite"></div><div id="diagnoseResult" class="task" hidden></div>
+ </div>
+</section>
+<section id="fieldhealth">
+ <div class="card"><h2>🛰️ My satellite crop monitoring</h2><p class="note">The map uses satellite basemap imagery. Draw your field boundary by tapping/clicking at least three points. The crop-health overlay uses Sentinel-2 NDVI when Sentinel Hub credentials are configured.</p>
+  <div id="fieldMap" style="height:380px;border:1px solid var(--line);border-radius:14px;overflow:hidden;background:#edf4ed"></div>
+  <div class="callbar"><button class="btn" id="fieldLocate">◎ Locate me</button><button class="btn" id="fieldUndo">Undo point</button><button class="btn" id="fieldClear">Clear boundary</button><button class="btn primary" id="fieldAnalyse">Analyse crop health</button></div>
+  <p id="fieldCount" class="note">No boundary drawn yet.</p><div id="fieldHealthStatus" class="status" aria-live="polite">Draw a field to enable crop-health analysis.</div>
+  <div class="field-legend"><span>🔴 Poor</span><span>🟠 Stressed</span><span>🟡 Moderate</span><span>🟢 Healthy</span></div>
+  <p class="note">NDVI indicates vegetation greenness, not a diagnosis. Cloud cover, crop type and growth stage affect interpretation. Do not use this alone for pesticide or irrigation decisions.</p>
+ </div>
+</section>
+<section id="irrigation">
+ <div class="card"><h2>💧 Smart irrigation assistant</h2><p class="note">A transparent decision aid using your inputs and live weather where available. It does not control pumps or calculate a guaranteed water dose.</p>
+  <div class="row"><div><label for="irCrop">Crop</label><select id="irCrop"><option>Wheat</option><option>Rice</option><option>Tomato</option><option>Mustard</option><option>Cotton</option><option>Other</option></select></div><div><label for="irStage">Growth stage</label><select id="irStage"><option>Seedling</option><option>Vegetative</option><option>Flowering</option><option>Fruiting / grain fill</option><option>Maturity</option></select></div><div><label for="irMoisture">Soil moisture (%)</label><input id="irMoisture" type="number" min="0" max="100" value="45"></div><div><label for="irRain">Rain chance next 24 hours (%)</label><input id="irRain" type="number" min="0" max="100" value="0"></div></div>
+  <button class="btn primary" id="irAdvice">Get irrigation guidance</button><div id="irResult" class="task" style="margin-top:12px">Enter current soil moisture and rain outlook to receive guidance.</div>
+ </div>
+</section>
+<section id="farmcalendar">
+ <div class="card"><h2>🗓️ My farm calendar</h2><p class="note">Tasks are saved on this device and work offline. When you sign in, GramSutra can sync them to your account.</p>
+  <div class="row"><div><label for="taskTitle">Task</label><input id="taskTitle" placeholder="e.g. Inspect north field"></div><div><label for="taskDate">Due date</label><input id="taskDate" type="date"></div><div><label for="taskCategory">Type</label><select id="taskCategory"><option>Field inspection</option><option>Irrigation</option><option>Fertilizer</option><option>Pest monitoring</option><option>Sowing</option><option>Harvest</option><option>Market / sale</option><option>Other</option></select></div></div>
+  <button class="btn primary" id="taskAdd">Add reminder</button><button class="btn" id="taskNotify">Enable due-task alerts</button><div id="taskStatus" class="note"></div><div id="taskList" style="margin-top:12px"></div><div class="card" style="margin-top:14px"><h3>📌 Saved Pragati AI advice</h3><p class="note">Bookmark useful answers so they remain available offline on this device.</p><div id="savedAdviceList"></div></div>
+ </div>
+</section>
+<section id="marketplace">
+ <div class="card"><h2>🛒 Farmer marketplace & equipment rental</h2><p class="note">List produce, seeds, compost, fertilizers or farm equipment for sale/rent. Contact details are not made public; buyers send an inquiry through GramSutra. Do not list pesticides or restricted products.</p>
+  <div class="row"><div><label for="listingType">Listing type</label><select id="listingType"><option value="produce">Crop / produce for sale</option><option value="inputs">Seeds / farm inputs</option><option value="equipment">Equipment for rent</option></select></div><div><label for="listingTitle">Title</label><input id="listingTitle" placeholder="e.g. Wheat, 20 quintals / Tractor"></div><div><label for="listingCategory">Category / item</label><input id="listingCategory" placeholder="Wheat / seed / compost / fertilizer / tractor"></div><div><label for="listingQty">Quantity / availability</label><input id="listingQty" placeholder="20 quintals / per day"></div><div><label for="listingPrice">Price (₹)</label><input id="listingPrice" type="number" min="0" placeholder="Price or rental rate"></div><div><label for="listingVillage">Village / district</label><input id="listingVillage" placeholder="Village, district" ></div></div>
+  <label for="listingDesc">Details</label><textarea id="listingDesc" rows="3" placeholder="Quality, dates available, terms, pickup details…"></textarea>
+  <button class="btn primary" id="listingPublish">Publish listing</button><div id="listingStatus" class="status" aria-live="polite">Sign in to publish publicly. Without Supabase, drafts stay on this device only.</div>
+ </div>
+ <div class="card"><div class="market-head"><h2>Nearby listings</h2><button class="btn" id="listingRefresh">Refresh</button></div><div class="row"><div><label for="listingFilter">Show</label><select id="listingFilter"><option value="all">All listings</option><option value="produce">Crops / produce</option><option value="inputs">Seeds & farm inputs</option><option value="equipment">Equipment rental</option></select></div><div><label for="listingSearch">Search</label><input id="listingSearch" placeholder="wheat, tractor, village"></div></div><div id="listingFeed"></div><div class="card" style="margin-top:14px"><h3>✉️ My marketplace messages</h3><p class="note">Buyer inquiries and seller replies are private to the two parties.</p><div id="marketInquiries"></div></div>
+ </div>
+</section>
+<section id="schemes">
+ <div class="card"><h2>🏛️ Government schemes & farmer services</h2><p class="note">Official portals and application starting points. Eligibility, deadlines and benefits change; verify current rules with the issuing department before applying.</p><div id="schemeList" class="scheme-grid"></div></div>
+</section>
+
+</main>
+
+<script>
+const CLOUD=(s,d)=>`<svg width="${s}" height="${Math.round(s*.8)}" viewBox="0 0 64 52" aria-hidden="true" style="vertical-align:middle"><path d="M18 38a10 10 0 0 1 0-20 14 14 0 0 1 27-3 11 11 0 0 1 2 23z" fill="#9bd6f7"/>${d?'<path d="M22 42l-3 8M34 42l-3 8M46 42l-3 8" stroke="#3b9ad9" stroke-width="3.5" stroke-linecap="round"/>':''}</svg>`;
+const $=id=>document.getElementById(id), inr=n=>'₹'+Math.round(n).toLocaleString('en-IN');
+const tabs=[['home','🏠<br>Home'],['weather','⛈️<br>Weather'],['crop','🍅<br>Crop'],['market','💰<br>Market'],['biz','🧮<br>Business'],['ask','🤖<br>Ask']];
+const NAVTABS=[['home','⌂<br>Home'],['crop','🌿<br>Crop Doctor'],['market','↗<br>Market Rates'],['gis','◈<br>My Fields'],['community','♧<br>Community'],['ask','✳<br>Pragati AI'],['weather','☁<br>Weather'],['hub','▦<br>Explore']];
+tabs.push(['hub',''],['sat',''],['gis',''],['coop',''],['robot','']);
+$('nav').innerHTML=NAVTABS.map(([id,t],i)=>`<button role="tab" data-t="${id}" aria-selected="${i==0}">${t}</button>`).join('');
+function show(id){document.querySelectorAll('section').forEach(s=>s.classList.toggle('on',s.id==id));
+  document.querySelectorAll('nav button').forEach(b=>b.setAttribute('aria-selected',b.dataset.t==id));
+  try{history.replaceState(null,'','#'+id)}catch(e){}}
+$('nav').onclick=e=>{if(e.target.dataset.t){show(e.target.dataset.t);render()}};
+
+let buyers=[{n:'Buyer A (local)',p:22,t:200,h:0},{n:'Market B (regional)',p:25,t:1200,h:300},{n:'Buyer C (direct hub)',p:23,t:300,h:100}];
+function net(b){return +$('qty').value*b.p-(b.t+b.h)}
+function best(){return buyers.reduce((a,b)=>net(b)>net(a)?b:a)}
+
+function renderMarket(){
+  const bb=best();
+  $('buy').innerHTML=buyers.map((b,i)=>`<tr class="${b===bb?'best':''}"><td>${b.n}</td>
+   <td><input type="number" data-i="${i}" data-k="p" value="${b.p}"></td>
+   <td><input type="number" data-i="${i}" data-k="t" value="${b.t}"></td>
+   <td><input type="number" data-i="${i}" data-k="h" value="${b.h}"></td><td>${inr(net(b))}</td></tr>`).join('');
+  $('mout').textContent='Best: '+bb.n+' — '+inr(net(bb))+' in hand';
+}
+$('buy').onchange=e=>{const d=e.target.dataset;if(d.i){buyers[d.i][d.k]=+e.target.value;render()}};
+$('qty').oninput=render;
+
+function renderHome(){
+  const rain=+$('rain').value, stage=$('stage').value, feed=$('feed').value=='1', b=best();
+  $('rainv').textContent=rain;
+  const hot=feed&&rain>=70;
+  $('banner').innerHTML=!feed?'<div class="alert warn"><b>Live forecast not loaded.</b> Use the live weather control to request a local forecast. No weather-based recommendation is being made.</div>'
+   :window.GS_LIVE_WEATHER?(hot?'<div class="alert"><b>High rain probability in the forecast.</b> Review drainage and field conditions before acting.</div>':'<div class="alert ok"><b>Live forecast loaded.</b> Keep monitoring local field conditions.')
+   :'<div class="alert warn"><b>Demo inputs active.</b> These values are for testing only, not a real forecast.</div>';
+  $('tiles').innerHTML=`<div class="tile">🌧️ Rain probability · today<b>${feed?rain+'%':'—'}</b><span class="tile-sub">${feed?(rain>=70?'High attention':'Keep monitoring'):'Feed unavailable'}</span></div>
+   <div class="tile">🌿 Crop stage<b>${$('stage').selectedOptions[0].text.split(' (')[0]}</b><span class="tile-sub">Update as crop grows</span></div>
+   <div class="tile">💰 Best estimated return<b>${inr(net(b))}</b><span class="tile-sub">${esc(b.n)} · sample price</span></div>`;
+  const T=window.PLAN=[];
+  if(!feed)T.push(['M','Load a local forecast','No live weather has been requested yet. Tap the weather location control when ready.','Weather feed not loaded']);
+  else if(window.GS_LIVE_WEATHER){
+    if(hot)T.push(['H','Inspect low-lying areas and drainage','Live forecast shows elevated rain probability. Verify field conditions and clear blocked drains where safe.','Open-Meteo local forecast']);
+    else T.push(['M','Routine field inspection','Check crop, soil and irrigation conditions in person; sensor data is not connected.','Open-Meteo local forecast']);
+  }
+  else if(hot&&stage=='mature'){
+    T.push(['U','Harvest tomatoes within 18 hours','Rule: rain risk ≥ 70% and crop is mature (cracking and fungal risk).','Weather alert + your crop profile']);
+    T.push(['U','Clear field drainage channels','Rule: heavy rain expected. Use the village map to find low spots.','Weather alert']);
+    T.push(['H','Send produce to '+b.n,'Rule: highest net return '+inr(net(b))+' for '+$('qty').value+' kg after transport and handling.','Fair-price finder · sample prices']);
+    T.push(['M','Arrange transport before rain starts','Rule: avoid rain delays on roads.','Weather alert']);
+  }else if(hot){
+    T.push(['H','Protect plants and clear drainage','Rule: heavy rain expected but crop is not harvest-ready.','Weather alert + crop profile']);
+    T.push(['M','Look at prices for later','Best net now: '+b.n+' at '+inr(net(b))+'.','Fair-price finder']);
+  }else if(feed){
+    T.push(['M','Routine field inspection','Rule: no heavy rain expected.','Weather feed']);
+    if(stage=='mature')T.push(['H','Plan harvest with '+b.n,'Highest net return '+inr(net(b))+'.','Fair-price finder']);
+  }
+  $('plan').innerHTML=T.map(t=>`<div class="task"><span class="tag ${t[0]}">${{U:'URGENT',H:'HIGH',M:'MEDIUM'}[t[0]]}</span><b>${t[1]}</b><div class="why">${t[2]}<br>Data: ${t[3]}</div></div>`).join('');
+}
+['rain','stage','feed'].forEach(i=>$(i).oninput=render);
+
+function renderWx(){
+  const feed=$('feed').value=='1';
+  $('wx').innerHTML=feed&&window.GS_LIVE_WEATHER?`<p><b>Live local forecast</b></p><p>Temperature ${Math.round(window.GS_LIVE_WEATHER.current.temperature_2m)}°C · Humidity ${window.GS_LIVE_WEATHER.current.relative_humidity_2m}% · Rain probability ${$('rain').value}% (today).</p><p>Source: Open-Meteo · Retrieved ${new Date(window.GS_LIVE_WEATHER.fetchedAt).toLocaleString()}.</p>`
+   :feed?`<p><b>Demo-only inputs are active.</b></p><p>Rain chance ${$('rain').value}% is a value you entered for testing. It is not a live forecast.</p>`
+   :'<p class="big">Live forecast not loaded</p><p>Tap “Use my location & load weather” below to request a real local forecast. You can also consult the IMD official service.</p>';
+  const t=+$('tmp').value,h=+$('hum').value,n=+$('nbr').value;
+  let s='Normal',c='var(--gd)';
+  if(t<-5||t>55||h<0||h>100||isNaN(t)||isNaN(h)){s='Possible sensor fault';c='var(--red)'}
+  else if(Math.abs(t-n)>8||h<10){s='Check reading';c='var(--gold)'}
+  $('anom').textContent=s;$('anom').style.color=c;
+}
+['tmp','hum','nbr'].forEach(i=>$(i).oninput=renderWx);
+
+document.querySelectorAll('.sy').forEach(c=>c.onchange=()=>{
+  const v=[...document.querySelectorAll('.sy:checked')].map(x=>x.value);
+  const m={old:'Nutrient shortage (often nitrogen)',wet:'Waterlogging or root rot',bug:'Pests such as mites or whitefly',spot:'A fungal leaf disease such as early blight',dry:'Water stress'};
+  if(!v.length){$('cropout').innerHTML='';return}
+  $('cropout').innerHTML=`<h3>Possible causes (not a diagnosis)</h3><ul>${v.map(x=>`<li>${m[x]}</li>`).join('')}</ul>
+  <p>Next steps: look at roots and the underside of leaves, check drainage, and note how many plants are affected. Photograph several leaves and show them to your local agriculture officer.</p>
+  <p class="note">This helper does not recommend chemicals from symptoms alone.</p>`;});
+
+function renderBiz(){
+  const u=+$('u').value,p=+$('p').value,cost=+$('cm').value+ +$('cl').value+ +$('ct').value,rev=u*p,prof=rev-cost;
+  const unitCost=u?cost/u:0,be=p>unitCost&&u?Math.ceil(cost/p):null;
+  $('bout').innerHTML=`<p>Revenue: <b>${inr(rev)}</b> · Expenses: <b>${inr(cost)}</b></p>
+   <p class="big" style="color:${prof>=0?'var(--gd)':'var(--red)'}">Net profit: ${inr(prof)}</p>
+   <p>Margin: ${rev?(prof/rev*100).toFixed(1):0}% · Profit per unit: ${inr(u?prof/u:0)}</p>
+   <p>Break-even: ${be?be+' units at this price':'not reachable at this price'}</p>`;
+}
+['u','p','cm','cl','ct'].forEach(i=>$(i).oninput=renderBiz);
+
+const MODS=[['weather',CLOUD(32),'Weather assistant','Forecast in simple words'],['weather','📡','Station check','Spot faulty sensors'],['crop','🍅','Crop helper','Symptoms to causes'],['sat','🛰️','Satellite map','Observed vs AI view'],['gis','🗺️','Village map','Plots, water, services'],['biz','🧮','Business planner','Profit and break-even'],['market','💰','Fair-price finder','Best buyer in hand'],['coop','🤝','Cooperative help','Group selling and FAQ'],['robot','🚜','Robot route demo','Path around flooded spots'],['home','✅','Action plan','Your tasks for today'],['ask','✳','Pragati AI','Your farming companion'],['community','♧','Community','Find farmers, chat and call']];
+$('modgrid').innerHTML=MODS.map(m=>`<button class="mod" data-go="${m[0]}"><span>${m[1]}</span><b>${m[2]}</b><small>${m[3]}</small></button>`).join('');
+document.body.addEventListener('click',e=>{const g=e.target.closest('[data-go]');if(g){show(g.dataset.go);scrollTo(0,0);render()}});
+['weather','crop','market','biz','sat','gis','coop','robot'].forEach(id=>{const b=document.createElement('button');b.className='back';b.textContent='← All features';b.dataset.go='hub';$(id).prepend(b)});
+let slm='obs';
+function renderSat(){const W=10,H=6,s=30;let o='';for(let j=0;j<H;j++)for(let i=0;i<W;i++){const pond=i>=7&&i<=8&&j>=3&&j<=4,road=j==5,v=(Math.sin(i*1.7+j*2.3)+1)/2;const c=pond?'#4a90c2':road?'#b9b4a6':`hsl(${85+v*45},50%,${30+v*22}%)`;o+=`<rect x="${i*s}" y="${j*s}" width="${s}" height="${s}" fill="${c}"/>`}
+ if(slm=='ai'){let r='';for(let k=0;k<30;k++)r+=`<line x1="0" x2="300" y1="${k*6+3}" y2="${k*6+3}" stroke="#fff" stroke-opacity=".1"/>`;o=`<g filter="url(#bl)">${o}</g>`+r}
+ $('svg').innerHTML='<defs><filter id="bl"><feGaussianBlur stdDeviation="6"/></filter></defs>'+o+(slm=='ai'?'<text x="8" y="14" font-size="10" fill="#fff" stroke="#000" stroke-width=".4">AI-generated enhancement</text>':'');
+ $('slnote').textContent=slm=='ai'?'This view is made by a model to look sharper. It is not ground truth. Do not use it to measure your field.':'Observed satellite pixels. Darker green means denser plants (sample data).';
+ document.querySelectorAll('[data-sl]').forEach(b=>b.setAttribute('aria-pressed',b.dataset.sl==slm))}
+document.querySelectorAll('[data-sl]').forEach(b=>b.onclick=()=>{slm=b.dataset.sl;renderSat()});
+const PLOTS={'Plot 12 - North field':'1.2 acre. Pond 150 m east. Road 80 m. Slopes to the east drain, so drainage is good.','Plot 7 - Near pond':'0.8 acre. Pond 20 m. Road 300 m. Low ground that floods first in heavy rain.','Plot 3 - By road':'1.5 acre. Pond 400 m. Road 10 m. Easy truck access.'};
+$('plot').innerHTML=Object.keys(PLOTS).map(k=>`<option>${k}</option>`).join('');
+function renderGis(){$('plotinfo').textContent=PLOTS[$('plot').value]}$('plot').onchange=renderGis;
+const FAQ=[['How do I become a member?','Apply to the society secretary with your ID and the share fee. The committee then approves.'],['Who can vote?','Usually each member gets one vote at the general meeting, whatever their shares.'],['How do I apply for a society loan?','Give the loan form and your crop plan to the secretary. The committee reviews it.'],['Who do I contact in a dispute?','First the society committee, then the Registrar of Cooperative Societies office.']];
+function renderFaq(){const q=$('fq').value.toLowerCase();$('faq').innerHTML=FAQ.filter(f=>(f[0]+f[1]).toLowerCase().includes(q)).map(f=>`<div class="task"><b>${f[0]}</b><div>${f[1]}</div><div class="why">Sample entry. Confirm with your registrar or a legal adviser.</div></div>`).join('')||'<p class="note">No match. Try the assistant.</p>'}
+$('fq').oninput=renderFaq;
+$('fqa').onclick=()=>{show('ask');send($('fq').value||'Tell me about cooperative membership and loans')};
+function renderGroup(){$('gtot').textContent='Group total: '+(+$('gm').value*+$('gk').value).toLocaleString('en-IN')+' kg'}
+$('gm').oninput=$('gk').oninput=renderGroup;
+$('guse').onclick=()=>{$('qty').value=+$('gm').value*+$('gk').value;show('market');scrollTo(0,0);render()};
+const blocked=new Set(['4,1','4,2','4,3']);
+function route(){const q=[[0,0]],pv={'0,0':null};while(q.length){const [x,y]=q.shift();if(x==9&&y==6)break;for(const [dx,dy] of [[1,0],[-1,0],[0,1],[0,-1]]){const nx=x+dx,ny=y+dy,k=nx+','+ny;if(nx<0||ny<0||nx>9||ny>6||blocked.has(k)||k in pv)continue;pv[k]=x+','+y;q.push([nx,ny])}}
+ if(!('9,6' in pv))return null;const p=new Set();for(let k='9,6';k;k=pv[k])p.add(k);return p}
+function renderNav(){const r=route();let h='';for(let y=0;y<7;y++)for(let x=0;x<10;x++){const k=x+','+y,b=blocked.has(k),p=r&&r.has(k);h+=`<button class="cell ${b?'wet':p?'path':''}" data-c="${k}" aria-label="Square ${x+1},${y+1}">${k=='0,0'?'🚜':k=='9,6'?'🏁':b?'💧':''}</button>`}
+ $('ngrid').innerHTML=h;$('nout').textContent=r?'Route found: '+(r.size-1)+' steps':'No route. Remove a flooded spot.'}
+$('ngrid').onclick=e=>{const k=e.target.dataset.c;if(k&&k!='0,0'&&k!='9,6'){blocked.has(k)?blocked.delete(k):blocked.add(k);renderNav()}};
+renderSat();renderGis();renderFaq();renderGroup();renderNav();
+const PERSONA=`You are Pragati AI, the farmer’s Cropping Partner: an experienced, warm and practical farm companion from Rampur village, like a trusted elder brother (bhaiya). Say Namaste when greeting. Keep answers short and simple: give the answer first, then one to three clear next steps. Ask at most one question, only if you truly need it. Be encouraging and honest about uncertainty.
+What you know. Tomato: when rain or a long trip is coming, harvest at the pink (breaker) stage instead of waiting for full red. Heavy rain cracks fruit and spreads fungal disease such as early and late blight, so keep drainage channels clear and stake plants. Harvest in the cool morning, handle gently, grade by ripeness and carry in crates, not sacks. Ripe tomatoes last 1 to 2 days in shade; mature green ones 1 to 2 weeks if kept cool. Yellow leaves can mean nutrient shortage, waterlogging, pests or water stress, so never diagnose from one photo. Selling: compare net return in hand, not the headline price; group selling lowers transport cost per kg; check the mandi price in the morning. Limits: you never give pesticide names or doses, you send crop problems to the local agriculture officer or Krishi Vigyan Kendra, the village map is not a legal land title, and cooperative answers are sample information to confirm with the registrar. You can use tools to read and change the app, open screens (weather, crop, market, biz, sat, gis, coop, robot, crop photo review, live field health, irrigation, farm calendar, marketplace, government schemes), look up plots, set group selling and add flooded spots on the robot route demo.`;
+const SYS=PERSONA+' Reply in the language the farmer writes in (English or Hindi), in short simple sentences. Always use the tools to get real numbers and to take actions; never invent prices or forecasts. If the forecast feed is disconnected, say the forecast is unavailable and point to the official IMD site. You give decision support only: never recommend pesticides or chemicals from symptoms alone, and send crop problems to the local agriculture officer. When you change something in the app, say what you changed.';
+const chat=[];let curOut=null;
+function addMsg(c,t,before){const d=document.createElement('div');d.className='msg '+c;d.textContent=t;before?$('msgs').insertBefore(d,before):$('msgs').appendChild(d);d.scrollIntoView({block:'nearest'});return d}
+const note=t=>addMsg('tool','🔧 '+t,curOut);
+function situ(){const feed=$('feed').value=='1';return{farmer:{name:PROF.name||null,village:PROF.village||null,role:PROF.role||null,language:PROF.lang||null},forecast_feed:feed?'connected':'disconnected',rain_risk_percent:feed?+$('rain').value:null,crop_stage:$('stage').value,quantity_kg:+$('qty').value,buyers:buyers.map(b=>({name:b.n,price_per_kg:b.p,transport:b.t,handling:b.h,net_return:net(b)})),best_buyer:best().n,action_plan:(window.PLAN||[]).map(t=>({priority:t[0],task:t[1],reason:t[2]}))}}
+const CAUSES={old:'nutrient shortage (often nitrogen)',wet:'waterlogging or root rot',bug:'pests such as mites or whitefly',spot:'a fungal leaf disease such as early blight',dry:'water stress'};
+const O=(p,r)=>({type:'object',properties:p,required:r||[]});
+const tools=[
+{name:'get_current_situation',description:'Get the current rain risk, crop stage, forecast feed status, quantity, buyer offers with net returns, best buyer and the prioritized action plan shown in the app.',inputSchema:O({}),execute:async()=>{note('Checked your farm situation');return situ()}},
+{name:'set_farm_inputs',description:'Change app inputs and refresh the action plan. Use when the farmer tells you new facts (rain risk, crop stage, quantity, feed status).',inputSchema:O({rain_risk_percent:{type:'number'},crop_stage:{type:'string',enum:['mature','flower','young']},quantity_kg:{type:'number'},forecast_feed:{type:'string',enum:['connected','disconnected']}}),execute:async i=>{
+ if(i.rain_risk_percent!=null)$('rain').value=Math.max(0,Math.min(100,i.rain_risk_percent));
+ if(i.crop_stage)$('stage').value=i.crop_stage;
+ if(i.quantity_kg!=null)$('qty').value=i.quantity_kg;
+ if(i.forecast_feed)$('feed').value=i.forecast_feed=='connected'?'1':'0';
+ render();note('Updated the app inputs');return situ()}},
+{name:'update_buyer_offer',description:'Change one buyer’s offer (price per kg, transport, handling) by name, then recompute net returns.',inputSchema:O({buyer_name:{type:'string'},price_per_kg:{type:'number'},transport:{type:'number'},handling:{type:'number'}},['buyer_name']),execute:async i=>{
+ const b=buyers.find(x=>x.n.toLowerCase().includes(String(i.buyer_name).toLowerCase()));
+ if(!b)return{error:'No buyer with that name',buyers:buyers.map(x=>x.n)};
+ if(i.price_per_kg!=null)b.p=i.price_per_kg;if(i.transport!=null)b.t=i.transport;if(i.handling!=null)b.h=i.handling;
+ render();note('Updated '+b.n);return situ()}},
+{name:'check_crop_symptoms',description:'List possible causes for tomato symptoms. Never a diagnosis.',inputSchema:O({symptoms:{type:'array',items:{type:'string',enum:['old','wet','bug','spot','dry']}}},['symptoms']),execute:async i=>{note('Checked crop symptoms');return{possible_causes:(i.symptoms||[]).map(s=>CAUSES[s]).filter(Boolean),advice:'Inspect roots and leaf undersides, check drainage, show photos to the local agriculture officer. No chemicals from symptoms alone.'}}},
+{name:'calc_business_plan',description:'Compute revenue, expenses, profit, margin and break-even units.',inputSchema:O({units:{type:'number'},price:{type:'number'},total_cost:{type:'number'}},['units','price','total_cost']),execute:async i=>{note('Ran the business calculator');const rev=i.units*i.price,pr=rev-i.total_cost;return{revenue:rev,expenses:i.total_cost,net_profit:pr,margin_percent:rev?+(pr/rev*100).toFixed(1):0,break_even_units:i.price>0?Math.ceil(i.total_cost/i.price):null}}},
+{name:'open_tab',description:'Open a tab so the farmer can see details.',inputSchema:O({tab:{type:'string',enum:['home','weather','crop','market','biz','sat','gis','coop','robot','hub','cropai','fieldhealth','irrigation','farmcalendar','marketplace','schemes']}},['tab']),execute:async i=>{show(i.tab);render();note('Opened '+i.tab);return{ok:true}}},
+{name:'get_plot_info',description:'Show details for plot 12, 7 or 3 on the village map screen.',inputSchema:O({plot_number:{type:'number',enum:[12,7,3]}},['plot_number']),execute:async i=>{const k=Object.keys(PLOTS).find(x=>x.includes('Plot '+i.plot_number+' '));if(!k)return{error:'Known plots are 12, 7 and 3'};$('plot').value=k;renderGis();note('Looked up '+k);return{plot:k,details:PLOTS[k]}}},
+{name:'set_group_selling',description:'Set group selling members and average kg each, send the total to the Fair-price finder and return updated buyer net returns.',inputSchema:O({members:{type:'number'},kg_each:{type:'number'}},['members','kg_each']),execute:async i=>{$('gm').value=i.members;$('gk').value=i.kg_each;renderGroup();$('qty').value=i.members*i.kg_each;render();note('Set group total to '+i.members*i.kg_each+' kg');return situ()}},
+{name:'toggle_flooded_spot',description:'Add or remove a flooded spot on the robot route demo grid (x 1 to 10, y 1 to 7) and report the route.',inputSchema:O({x:{type:'number'},y:{type:'number'}},['x','y']),execute:async i=>{const k=(i.x-1)+','+(i.y-1);if(k=='0,0'||k=='9,6'||i.x<1||i.x>10||i.y<1||i.y>7)return{error:'Choose another square in x 1-10, y 1-7, not start or goal'};blocked.has(k)?blocked.delete(k):blocked.add(k);renderNav();const r=route();note('Changed flooded spot '+i.x+','+i.y);return{route_found:!!r,steps:r?r.size-1:null}}}
+];
+async function send(txt){
+ txt=(txt||$('q').value).trim();if(!txt)return;$('q').value='';addMsg('me',txt);chat.push({role:'user',content:txt});
+ curOut=addMsg('bot','Thinking…');$('go').disabled=true;
+ const msgs=chat.map(m=>({role:m.role,content:m.content}));
+ try{
+  let text='';
+  for(let step=0;step<8;step++){
+   const res=await fetch((window.GRAMSUTRA_API||'')+'/api/chat',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({system:SYS+' Reply in the farmer’s selected language: '+(PROF.lang||'English')+'. Support Indian languages where possible; do not claim a translation is perfect.',messages:msgs,tools:tools.map(t=>({name:t.name,description:t.description,input_schema:t.inputSchema}))})});
+   let d;try{d=await res.json()}catch{throw new Error('The GramSutra server returned an invalid response. Make sure you deployed the Node server, not just the public folder.')}
+   if(!res.ok)throw new Error(d.error||('GramSutra server error ('+res.status+').'));
+   if(!Array.isArray(d.content))throw new Error(d.error||'The AI provider returned an unexpected response. Check the server logs.');
+   msgs.push({role:'assistant',content:d.content});
+   const t=d.content.filter(b=>b.type=='text').map(b=>b.text).join('');if(t)text=t;
+   const uses=d.content.filter(b=>b.type=='tool_use');
+   if(!uses.length)break;
+   const results=[];
+   for(const u of uses){const tl=tools.find(x=>x.name==u.name);let out;try{out=await tl.execute(u.input)}catch(e){out={error:String(e)}}results.push({type:'tool_result',tool_use_id:u.id,content:JSON.stringify(out)})}
+   msgs.push({role:'user',content:results});
+  }
+  curOut.textContent=text||'…';chat.push({role:'assistant',content:text});
+ }catch(e){
+  const why=String(e&&e.message||e||'Unknown error');
+  if (e instanceof TypeError && /fetch|network|load failed/i.test(why)) {
+   const base=window.GRAMSUTRA_API || (location.protocol==='file:' || location.protocol==='capacitor:' ? '(API URL not configured)' : location.origin);
+   curOut.textContent='Pragati AI cannot reach the GramSutra server. Server target: '+base+'. Deploy the Node.js app (not just the public folder), then open '+(base.startsWith('http')?base:'your hosted URL')+'/api/health. For an installed Android app, set window.GRAMSUTRA_API in public/api-config.js to your HTTPS Render URL and rebuild the app.';
+  } else {
+   curOut.textContent='Pragati AI could not reply: '+why;
+  }
+  chat.pop();
+ }
+ $('go').disabled=false;curOut=null}
+const SR=window.SpeechRecognition||window.webkitSpeechRecognition;
+if(SR){$('mic').onclick=()=>{try{const r=new SR();r.lang='hi-IN';r.onresult=e=>{$('q').value=e.results[0][0].transcript;send()};r.onerror=()=>addMsg('bot','I couldn’t hear you. Please type your question.');r.start()}catch(e){addMsg('bot','Voice is not available here. Please type your question.')}}}else $('mic').style.display='none';
+$('go').onclick=()=>send();
+$('q').onkeydown=e=>{if(e.key=='Enter')send()};
+addMsg('bot','Namaste! I am Pragati AI, your farming companion. Ask me about your tomato crop, rain, prices, crop problems or group selling, and I will check the app and help you decide. You can also speak with the 🎤 button. Kya poochna hai?');
+window.addEventListener('load',()=>setTimeout(()=>{$('splash').classList.add('off');setTimeout(()=>$('splash').remove(),600);setTimeout(()=>{if(!PROF.name)showLogin()},700)},1700));
+const esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+let PROF={};try{PROF=JSON.parse(localStorage.getItem('gs_profile')||'{}')||{}}catch(e){}
+const PIC='<svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4.4 3.6-7 8-7s8 2.6 8 7"/></svg>';
+function renderTop(){const b=$('pbtn');if(PROF.name){b.innerHTML='<b>'+esc(PROF.name.trim().charAt(0).toUpperCase())+'</b>';b.setAttribute('aria-label','Profile: '+PROF.name)}else{b.innerHTML=PIC;b.setAttribute('aria-label','Log in')}}
+function openM(v){$('modal').hidden=false;$('lv').hidden=v!='login';$('pv2').hidden=v!='prof'}
+const closeM=()=>{$('modal').hidden=true};
+function showLogin(){$('pn').value=PROF.name||'';$('pm').value=PROF.phone||'';$('pv').value=PROF.village||'Rampur';$('pr').value=PROF.role||'Farmer';$('pl').value=PROF.lang||'English';$('perr').textContent='';$('mt').textContent=PROF.name?'Edit your profile':'Welcome to GramSutra';$('psave').textContent=PROF.name?'Save':'Login';openM('login');setTimeout(()=>$('pn').focus(),50)}
+function showProfile(){$('pinfo').innerHTML=`<p><b>${esc(PROF.name)}</b></p><p>${esc(PROF.role)}, ${esc(PROF.village)}</p><p>Mobile: ${esc(PROF.phone)}</p><p>Language: ${esc(PROF.lang)}</p>`;openM('prof')}
+function saveProf(){try{localStorage.setItem('gs_profile',JSON.stringify(PROF))}catch(e){}}
+$('psave').onclick=()=>{const n=$('pn').value.trim(),m=$('pm').value.trim();if(!n){$('perr').textContent='Please enter your name.';return}if(!/^[6-9]\d{9}$/.test(m)){$('perr').textContent='Enter a 10-digit mobile number.';return}PROF={name:n,phone:m,village:$('pv').value.trim()||'Rampur',role:$('pr').value,lang:$('pl').value};saveProf();renderTop();render();closeM()};
+$('pguest').onclick=closeM;$('pclose').onclick=closeM;$('pedit').onclick=showLogin;
+$('pout').onclick=()=>{PROF={};try{localStorage.removeItem('gs_profile')}catch(e){}renderTop();render();closeM()};
+$('pbtn').onclick=()=>PROF.name?showProfile():showLogin();
+$('modal').onclick=e=>{if(e.target.id=='modal')closeM()};
+document.addEventListener('keydown',e=>{if(e.key=='Escape')closeM()});
+renderTop();
+const done=new Set();
+const QA=[['weather',CLOUD(30),'Weather'],['crop','🍅','Crop doctor'],['market','💰','Market rates'],['gis','🗺️','My fields'],['community','🤝','Community'],['ask','🤖','Ask Pragati AI']];
+$('quick').innerHTML=QA.map(q=>`<button data-go="${q[0]}"><span>${q[1]}</span>${q[2]}</button>`).join('');
+function renderHome2(){
+ const feed=$('feed').value=='1',rain=+$('rain').value,stage=$('stage').value,b=best(),hot=feed&&rain>=70;
+ $('map-village').textContent=(PROF.village||'Your village')+' · Field health'; $('top-village').textContent=PROF.village||'Set your village';
+ const insight=!feed?'Live forecast not loaded. Choose Weather and request a local forecast.':window.GS_LIVE_WEATHER?(hot?'The live forecast indicates elevated rain probability. Inspect drainage and verify crop conditions in the field.':'Live weather is loaded. Check soil moisture and crop condition before scheduling work.'):(hot&&stage==='mature'?'Demo only: high rain input plus the selected example crop stage activates the harvest scenario.':hot?'Demo only: high rain input activates the drainage scenario.':'Use the live weather and your own crop records for farm-specific guidance.');
+ $('insight-text').textContent=insight;
+ const live=window.GS_LIVE_WEATHER, moisture=Number($('irMoisture')?.value);
+ $('metric-row').innerHTML=`<div class="metric"><small>🌱 Total land</small><strong>Not set</strong><small>Add your real plot area</small></div><div class="metric"><small>🌾 Current crop</small><strong>Not set</strong><small>Update your farm profile</small></div><div class="metric"><small>💧 Soil moisture</small><strong>Not measured</strong><small>No sensor connected</small></div><div class="metric"><small>🌡️ Temperature</small><strong>${live?Math.round(live.current.temperature_2m)+'°C':'—'}</strong><small>${live?'Live local reading':'Load live weather'}</small></div><div class="metric"><small>🌧️ Rain forecast</small><strong>${live?rain+'%':'—'}</strong><small>${live?'Today · Open-Meteo':'Not loaded'}</small></div><div class="metric"><small>💰 Market rates</small><strong>Live mandi</strong><small>Open Market Rates to check</small></div>`;
+ const P=window.PLAN||[],n=P.filter(t=>done.has(t[1])).length;
+ $('prog').innerHTML=P.length?`<div class="note">${n} of ${P.length} done</div><div class="pbar"><i style="width:${n/P.length*100}%"></i></div>`:'';
+ $('plan').innerHTML=P.length?P.map((t,i)=>{const d=done.has(t[1]);return `<label class="task tk ${d?'dn':''}"><input type="checkbox" data-d="${i}" ${d?'checked':''}><span><span class="tag ${t[0]}">${{U:'URGENT',H:'HIGH',M:'MEDIUM'}[t[0]]}</span><b>${t[1]}</b><div class="why">${t[2]}<br>Data: ${t[3]}</div></span></label>`}).join(''):'<p>Nothing urgent. Enjoy your day.</p>';
+}
+$('plan').onchange=e=>{const i=e.target.dataset.d;if(i!=null){const k=window.PLAN[i][1];e.target.checked?done.add(k):done.delete(k);renderHome2()}};
+function render(){renderMarket();renderHome();renderHome2();renderWx();renderBiz()}
+render();
+const h=location.hash.slice(1);show(tabs.some(t=>t[0]==h)?h:'home');
+window.addEventListener('hashchange',()=>{const x=location.hash.slice(1);if(tabs.some(t=>t[0]==x))show(x)});
+
+// --- Supabase community: auth, connection requests, private chat and WebRTC calls ---
+const communityConfig=window.GRAMSUTRA_SUPABASE||{};
+const communityConfigured=!!(window.supabase&&communityConfig.url&&communityConfig.anonKey&&!communityConfig.url.includes('YOUR-PROJECT')&&!communityConfig.anonKey.includes('YOUR_SUPABASE'));
+let sb=null,communityUser=null,activePeer=null,messageChannel=null,inboxChannel=null,callRoom=null,callOutChannel=null,rtc=null,localStream=null,activeCallMode='video',pendingIce=[];
+let callIce={iceServers:[{urls:'stun:stun.l.google.com:19302'},{urls:'stun:stun1.l.google.com:19302'}]};
+async function loadIceConfig(){try{const r=await fetch((window.GRAMSUTRA_API||'')+'/api/ice-config');if(r.ok){const d=await r.json();if(d.iceServers?.length)callIce={iceServers:d.iceServers};if(!d.turnConfigured)callStatus('STUN-only calling is enabled. Add TURN credentials to the server for reliable calls across mobile networks.')}}catch(e){console.warn('ICE config unavailable; using STUN',e)}}
+async function flushIce(){if(!rtc?.remoteDescription)return;for(const c of pendingIce.splice(0)){try{await rtc.addIceCandidate(c)}catch(e){console.warn(e)}}}
+const cStatus=t=>{if($('communityStatus'))$('communityStatus').textContent=t};
+const callStatus=t=>{if($('callStatus'))$('callStatus').textContent=t};
+const cEsc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+function conversationKey(a,b){return [a,b].sort().join('_')}
+function supabaseReady(){
+ if(!communityConfigured){cStatus('Community backend is not configured yet. Add your Supabase Project URL and anon key in public/supabase-config.js, then run supabase/schema.sql in the Supabase SQL Editor.');return false}
+ if(!sb)sb=window.supabase.createClient(communityConfig.url,communityConfig.anonKey,{auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:true}});
+ return true;
+}
+async function communityInit(){
+ if(!supabaseReady())return;
+ try{const {data:{session},error}=await sb.auth.getSession();if(error)throw error;
+  if(session){communityUser=session.user;await communityLoadProfile();await communityShowApp();}else{$('communityAuth').hidden=false;$('communityApp').hidden=true;cStatus('Sign in to find and connect with other GramSutra members.');}
+  sb.auth.onAuthStateChange((_event,session)=>{setTimeout(async()=>{communityUser=session?.user||null;if(communityUser){await communityLoadProfile();await communityShowApp()}else{communityStopRealtime();window.dispatchEvent(new Event('gramsutra-auth-out'));$('communityAuth').hidden=false;$('communityApp').hidden=true;cStatus('You are signed out.');}},0)});
+ }catch(e){cStatus('Supabase connection error: '+e.message)}
+}
+async function communitySignup(){
+ if(!supabaseReady())return;
+ const email=$('communityEmail').value.trim(),password=$('communityPassword').value,name=$('communityName').value.trim(),village=$('communityVillage').value.trim(),role=$('communityRole').value;
+ if(!email||password.length<8||!name){cStatus('Enter your name, a valid email and a password of at least 8 characters.');return}
+ cStatus('Creating your account…');
+ const {data,error}=await sb.auth.signUp({email,password,options:{data:{display_name:name,village,role,language:$('communityLanguage').value||PROF.lang||'English'}}});
+ if(error){cStatus('Sign-up failed: '+error.message);return}
+ if(data.session){communityUser=data.user;await communityLoadProfile();await communityShowApp()}else cStatus('Account created. Check your email to confirm it, then sign in.');
+}
+async function communitySignin(){
+ if(!supabaseReady())return;
+ const {data,error}=await sb.auth.signInWithPassword({email:$('communityEmail').value.trim(),password:$('communityPassword').value});
+ if(error){cStatus('Sign-in failed: '+error.message);return}communityUser=data.user;await communityLoadProfile();await communityShowApp();
+}
+async function communityLoadProfile(){
+ const {data,error}=await sb.from('profiles').select('*').eq('id',communityUser.id).maybeSingle();
+ if(error)throw error;
+ if(!data){const meta=communityUser.user_metadata||{};const {error:e}=await sb.from('profiles').upsert({id:communityUser.id,display_name:meta.display_name||'Farmer',village:meta.village||'',role:meta.role||'Farmer',language:meta.language||'English'});if(e)throw e;PROF.lang=meta.language||'English';saveProf()}else if(data.language){PROF.lang=data.language;saveProf()}
+}
+async function communityShowApp(){
+ $('communityAuth').hidden=true;$('communityApp').hidden=false;$('communityMe').textContent='Signed in as '+(communityUser.email||'GramSutra member');cStatus('Connected securely. Only signed-in members can discover profiles.');await communityLoadPeople();await communityLoadRequests();await communityLoadConnections();communitySubscribeIncoming();window.dispatchEvent(new Event('gramsutra-auth-ready'));
+}
+function communityStopRealtime(){if(messageChannel)sb?.removeChannel(messageChannel);if(inboxChannel)sb?.removeChannel(inboxChannel);if(callRoom)sb?.removeChannel(callRoom);if(callOutChannel)sb?.removeChannel(callOutChannel);messageChannel=null;inboxChannel=null;callRoom=null;callOutChannel=null;activePeer=null;}
+async function communitySignout(){await endCall(false);communityStopRealtime();await sb.auth.signOut();communityUser=null;$('communityAuth').hidden=false;$('communityApp').hidden=true}
+async function communityLoadPeople(){
+ const q=$('peopleSearch').value.trim();let req=sb.from('profiles').select('id,display_name,village,role,bio').neq('id',communityUser.id).order('display_name').limit(80);
+ if(q)req=req.or(`display_name.ilike.%${q}%,village.ilike.%${q}%`);
+ const {data,error}=await req;if(error){$('peopleList').textContent=error.message;return}
+ const {data:mine}=await sb.from('connection_requests').select('requester_id,recipient_id,status').or(`requester_id.eq.${communityUser.id},recipient_id.eq.${communityUser.id}`);
+ const status=new Map((mine||[]).map(x=>[x.requester_id===communityUser.id?x.recipient_id:x.requester_id,x]));
+ $('peopleList').innerHTML=(data||[]).map(p=>{const r=status.get(p.id);let action='Connect',disabled=false;if(r?.status==='accepted'){action='Connected';disabled=true}else if(r?.status==='pending'){action=r.requester_id===communityUser.id?'Request sent':'Accept in requests';disabled=true}return `<div class="person"><b>${cEsc(p.display_name)}</b><p>${cEsc(p.role)} · ${cEsc(p.village||'Location not added')}</p><button class="btn" data-connect="${p.id}" ${disabled?'disabled':''}>${action}</button></div>`}).join('')||'<p class="note">No members found. Invite other farmers to join GramSutra.</p>';
+}
+async function sendConnection(id){const {error}=await sb.from('connection_requests').insert({requester_id:communityUser.id,recipient_id:id});if(error){cStatus(error.code==='23505'?'A request already exists. Refresh the list.':error.message);return}cStatus('Connection request sent.');await communityLoadPeople()}
+async function communityLoadRequests(){
+ const {data,error}=await sb.from('connection_requests').select('id,requester_id,recipient_id,status,requester:profiles!connection_requests_requester_id_fkey(id,display_name,village,role)').eq('recipient_id',communityUser.id).eq('status','pending').order('created_at',{ascending:false});
+ if(error){$('requestList').textContent=error.message;return}
+ $('requestList').innerHTML=(data||[]).map(r=>`<div class="person"><b>${cEsc(r.requester?.display_name||'GramSutra member')}</b><p>${cEsc(r.requester?.role||'')} · ${cEsc(r.requester?.village||'')}</p><button class="btn primary" data-accept="${r.id}">Accept</button> <button class="btn" data-reject="${r.id}">Decline</button></div>`).join('')||'<p class="note">No pending requests.</p>';
+}
+async function updateRequest(id,status){const {error}=await sb.from('connection_requests').update({status,updated_at:new Date().toISOString()}).eq('id',id);if(error){cStatus(error.message);return}await communityLoadRequests();await communityLoadConnections();await communityLoadPeople()}
+async function communityLoadConnections(){
+ const {data,error}=await sb.from('connection_requests').select('requester_id,recipient_id,status').eq('status','accepted').or(`requester_id.eq.${communityUser.id},recipient_id.eq.${communityUser.id}`);
+ if(error){$('connectionList').textContent=error.message;return}
+ const ids=(data||[]).map(x=>x.requester_id===communityUser.id?x.recipient_id:x.requester_id);if(!ids.length){$('connectionList').innerHTML='<p class="note">Accepted connections will appear here.</p>';return}
+ const {data:people}=await sb.from('profiles').select('id,display_name,village,role').in('id',ids);
+ $('connectionList').innerHTML=(people||[]).map(p=>`<div class="person"><b>${cEsc(p.display_name)}</b><p>${cEsc(p.village||'')} · ${cEsc(p.role)}</p><button class="btn primary" data-chat="${p.id}">Open chat</button></div>`).join('');
+}
+async function openPrivateChat(id){
+ if(messageChannel)await sb.removeChannel(messageChannel);const {data:peer,error}=await sb.from('profiles').select('id,display_name,village').eq('id',id).single();if(error){cStatus(error.message);return}
+ activePeer=peer;$('chatTitle').textContent='Chat with '+peer.display_name;$('chatLog').innerHTML='<p class="note">Loading messages…</p>';
+ const {data,error:e}=await sb.from('messages').select('*').or(`and(sender_id.eq.${communityUser.id},recipient_id.eq.${id}),and(sender_id.eq.${id},recipient_id.eq.${communityUser.id})`).order('created_at',{ascending:true}).limit(100);
+ if(e){$('chatLog').textContent=e.message;return}renderPrivateMessages(data||[]);
+ messageChannel=sb.channel('messages-'+conversationKey(communityUser.id,id)).on('postgres_changes',{event:'INSERT',schema:'public',table:'messages'},payload=>{const m=payload.new;if((m.sender_id===communityUser.id&&m.recipient_id===id)||(m.sender_id===id&&m.recipient_id===communityUser.id))appendPrivateMessage(m)}).subscribe();
+}
+function appendPrivateMessage(m){const d=document.createElement('div');d.className='chat-bubble '+(m.sender_id===communityUser.id?'mine':'');d.textContent=m.body;$('chatLog').appendChild(d);$('chatLog').scrollTop=$('chatLog').scrollHeight}
+function renderPrivateMessages(ms){$('chatLog').innerHTML='';ms.forEach(appendPrivateMessage);if(!ms.length)$('chatLog').innerHTML='<p class="note">No messages yet. Say namaste!</p>'}
+async function sendPrivateMessage(){if(!activePeer){cStatus('Choose an accepted connection first.');return}const body=$('communityMessage').value.trim();if(!body)return;const {error}=await sb.from('messages').insert({sender_id:communityUser.id,recipient_id:activePeer.id,body});if(error){cStatus('Message not sent: '+error.message);return}$('communityMessage').value=''}
+function communitySubscribeIncoming(){
+ if(inboxChannel)sb.removeChannel(inboxChannel);
+ inboxChannel=sb.channel('calls-inbox-'+communityUser.id,{config:{private:true}}).on('broadcast',{event:'signal'},async({payload})=>{
+  if(payload.to!==communityUser.id||payload.from===communityUser.id)return;
+  if(payload.type==='offer'){
+   const accept=confirm(`${payload.fromName||'A GramSutra member'} is calling. Accept ${payload.mode} call?`);if(!accept){await sendCallInvite(payload.from,{type:'reject'});return}
+   activePeer={id:payload.from,display_name:payload.fromName||'Farmer'};await setupCallRoom(payload.from);await startCallMedia(payload.mode);activeCallMode=payload.mode;rtc=new RTCPeerConnection(callIce);attachRtcHandlers();localStream.getTracks().forEach(t=>rtc.addTrack(t,localStream));await rtc.setRemoteDescription(payload.description);await flushIce();const answer=await rtc.createAnswer();await rtc.setLocalDescription(answer);await callRoom.send({type:'broadcast',event:'signal',payload:{type:'answer',from:communityUser.id,to:payload.from,description:rtc.localDescription}});callStatus('Connected call setup…');
+  }else if(payload.type==='reject'){callStatus('Call declined.');await endCall(false)}
+ });inboxChannel.subscribe();
+}
+async function setupCallRoom(peerId){
+ if(callRoom)await sb.removeChannel(callRoom);
+ callRoom=sb.channel('call-room-'+conversationKey(communityUser.id,peerId),{config:{private:true}}).on('broadcast',{event:'signal'},async({payload})=>{
+  if(payload.to!==communityUser.id||payload.from===communityUser.id)return;
+  if(payload.type==='answer'&&rtc){await rtc.setRemoteDescription(payload.description);await flushIce();callStatus('Call connected.');}
+  if(payload.type==='ice'&&rtc&&payload.candidate){try{await rtc.addIceCandidate(payload.candidate)}catch(e){}}
+  if(payload.type==='hangup'||payload.type==='reject'){callStatus(payload.type==='hangup'?'Call ended.':'Call declined.');await endCall(false)}
+ });await callRoom.subscribe();
+}
+async function sendCallInvite(peerId,payload){
+ if(callOutChannel)await sb.removeChannel(callOutChannel);
+ callOutChannel=sb.channel('calls-inbox-'+peerId,{config:{private:true}});await callOutChannel.subscribe();
+ await callOutChannel.send({type:'broadcast',event:'signal',payload:{...payload,from:communityUser.id,fromName:communityUser.email,to:peerId}});
+ await sb.removeChannel(callOutChannel);callOutChannel=null;
+}
+async function callSend(payload){if(!callRoom)return;await callRoom.send({type:'broadcast',event:'signal',payload:{...payload,from:communityUser.id,to:payload.to}})}
+async function startCallMedia(mode){localStream=await navigator.mediaDevices.getUserMedia({audio:true,video:mode==='video'});$('localVideo').srcObject=localStream;$('localVideo').muted=true;$('localVideo').style.display=mode==='video'?'block':'none';$('remoteVideo').style.display=mode==='video'?'block':'none'}
+function attachRtcHandlers(){pendingIce=[];rtc.onicecandidate=e=>{if(e.candidate){if(rtc.remoteDescription)callSend({type:'ice',to:activePeer.id,candidate:e.candidate});else pendingIce.push(e.candidate)}};rtc.ontrack=e=>{$('remoteVideo').srcObject=e.streams[0]};rtc.onconnectionstatechange=()=>callStatus('Call status: '+rtc.connectionState)}
+async function beginCall(mode){
+ await loadIceConfig();
+ if(!communityUser||!activePeer){callStatus('Choose a connection before calling.');return}
+ if(!navigator.mediaDevices?.getUserMedia||!window.RTCPeerConnection){callStatus('This device or browser does not support WebRTC calls. Use a current browser over HTTPS.');return}
+ try{await setupCallRoom(activePeer.id);await startCallMedia(mode);activeCallMode=mode;rtc=new RTCPeerConnection(callIce);attachRtcHandlers();localStream.getTracks().forEach(t=>rtc.addTrack(t,localStream));const offer=await rtc.createOffer();await rtc.setLocalDescription(offer);await sendCallInvite(activePeer.id,{type:'offer',mode,description:rtc.localDescription});callStatus('Calling '+activePeer.display_name+'… Waiting for them to answer.');}
+ catch(e){callStatus('Could not start call: '+e.message);await endCall(false)}
+}
+async function endCall(notify=true){if(notify&&activePeer&&callRoom)await callSend({type:'hangup',to:activePeer.id});if(rtc){rtc.close();rtc=null}if(localStream){localStream.getTracks().forEach(t=>t.stop());localStream=null}$('localVideo').srcObject=null;$('remoteVideo').srcObject=null;$('localVideo').style.display='block';$('remoteVideo').style.display='block';if(callRoom&&sb){await sb.removeChannel(callRoom);callRoom=null}callStatus('Call ended.');}
+$('currentLocation').onclick=()=>{const out=$('locationResult');if(!navigator.geolocation){out.textContent='Location is not supported by this device/browser.';return}out.textContent='Requesting your location…';navigator.geolocation.getCurrentPosition(pos=>{const lat=pos.coords.latitude.toFixed(5),lon=pos.coords.longitude.toFixed(5);out.innerHTML=`Current location: <b>${lat}, ${lon}</b> · <a href="https://www.google.com/maps?q=${lat},${lon}" target="_blank" rel="noopener">Open in Google Maps</a>`},err=>{out.textContent=err.code===1?'Location permission was denied. You can enable it in browser settings.':'Could not get your location. Check GPS and try again.'},{enableHighAccuracy:true,timeout:12000,maximumAge:60000})};
+$('communitySignup').onclick=communitySignup;$('communitySignin').onclick=communitySignin;$('communitySignout').onclick=communitySignout;$('communityRefresh').onclick=async()=>{await communityLoadPeople();await communityLoadRequests();await communityLoadConnections()};$('peopleSearch').oninput=()=>{clearTimeout(window._gsPeopleTimer);window._gsPeopleTimer=setTimeout(communityLoadPeople,250)};$('communitySend').onclick=sendPrivateMessage;$('communityMessage').onkeydown=e=>{if(e.key==='Enter')sendPrivateMessage()};$('voiceCall').onclick=()=>beginCall('audio');$('videoCall').onclick=()=>beginCall('video');$('hangupCall').onclick=()=>endCall(true);
+document.addEventListener('click',e=>{const el=e.target.closest('[data-connect],[data-accept],[data-reject],[data-chat]');if(!el)return;if(el.dataset.connect)sendConnection(el.dataset.connect);if(el.dataset.accept)updateRequest(el.dataset.accept,'accepted');if(el.dataset.reject)updateRequest(el.dataset.reject,'rejected');if(el.dataset.chat)openPrivateChat(el.dataset.chat)});
+if(communityConfigured){communityInit().catch(e=>cStatus('Community setup error: '+e.message))}else{cStatus('Setup required: configure Supabase URL/key and run the included database schema.');}
+
+</script>
+<script src="/features.js"></script>
+<script>if("serviceWorker" in navigator){window.addEventListener("load",()=>navigator.serviceWorker.register("/sw.js").catch(e=>console.warn("Offline cache unavailable",e)));}</script>
+</body>
+</html>
