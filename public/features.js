@@ -34,20 +34,34 @@
     const s=$f(id); if(s && !s.querySelector('.back')) { const b=document.createElement('button');b.className='back';b.textContent='← All features';b.dataset.go='hub';s.prepend(b); }
   });
 
-  // Crop photo review through the server-side Gemini vision endpoint.
+  // Crop Doctor: camera/gallery preview, client-side resizing, and server-side vision analysis.
+  const diagnosisInput=$f('diagnoseImage'), diagnosisPreview=$f('diagnosePreview');
+  diagnosisInput?.addEventListener('change',()=>{
+    const file=diagnosisInput.files?.[0];
+    if(!file){diagnosisPreview.hidden=true;diagnosisPreview.style.display='none';return;}
+    if(diagnosisPreview.dataset.objectUrl) URL.revokeObjectURL(diagnosisPreview.dataset.objectUrl);
+    const url=URL.createObjectURL(file);diagnosisPreview.src=url;diagnosisPreview.dataset.objectUrl=url;
+    diagnosisPreview.hidden=false;diagnosisPreview.style.display='block';
+    $f('diagnoseStatus').textContent='Photo selected. Check that the affected part is clear, then analyse.';
+    $f('diagnoseResult').hidden=true;
+  });
+  async function prepareDiagnosisImage(file){
+    const url=URL.createObjectURL(file);
+    try{return await new Promise((resolve,reject)=>{const img=new Image();img.onload=()=>{const scale=Math.min(1,1400/Math.max(img.width,img.height));const canvas=document.createElement('canvas');canvas.width=Math.max(1,Math.round(img.width*scale));canvas.height=Math.max(1,Math.round(img.height*scale));canvas.getContext('2d',{alpha:false}).drawImage(img,0,0,canvas.width,canvas.height);const data=canvas.toDataURL('image/jpeg',.82).split(',')[1];resolve({mimeType:'image/jpeg',imageBase64:data});};img.onerror=()=>reject(new Error('Could not open this image. Please try another photo.'));img.src=url;});}finally{URL.revokeObjectURL(url);}
+  }
   $f('diagnoseBtn')?.addEventListener('click', async () => {
-    const file=$f('diagnoseImage').files?.[0], status=$f('diagnoseStatus'), out=$f('diagnoseResult');
+    const file=diagnosisInput?.files?.[0], status=$f('diagnoseStatus'), out=$f('diagnoseResult'), button=$f('diagnoseBtn');
     out.hidden=true;
-    if (!file) { status.textContent='Choose a crop photo first.'; return; }
-    if (!/^image\/(jpeg|png|webp|gif)$/.test(file.type) || file.size>7*1024*1024) { status.textContent='Use a JPEG, PNG, WEBP or GIF under 7 MB.'; return; }
-    status.textContent='Preparing photo for Pragati AI…';
+    if (!file) { status.textContent='Take a photo or choose a crop photo first.'; return; }
+    if (!/^image\/(jpeg|png|webp)$/.test(file.type) || file.size>7*1024*1024) { status.textContent='Use a JPEG, PNG or WEBP photo under 7 MB.'; return; }
+    button.disabled=true;status.textContent='Preparing your photo…';
     try {
-      const dataUrl=await new Promise((resolve,reject)=>{const r=new FileReader();r.onload=()=>resolve(r.result);r.onerror=()=>reject(new Error('Could not read that photo.'));r.readAsDataURL(file);});
-      const base64=String(dataUrl).split(',')[1]; status.textContent='Pragati AI is reviewing the visible symptoms…';
-      const response=await fetch(api+'/api/crop-diagnose',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({mimeType:file.type,imageBase64:base64,crop:$f('diagnoseCrop').value,notes:$f('diagnoseNotes').value,language:getLang()})});
-      const result=await response.json(); if(!response.ok) throw new Error(result.error||'Photo analysis failed.');
-      out.textContent=result.text+'\n\n'+result.advisory;out.hidden=false;status.textContent='Review complete · '+(result.model||'AI')+' · '+new Date().toLocaleString();
+      const prepared=await prepareDiagnosisImage(file);status.textContent='Pragati AI is checking the crop for visible symptoms…';
+      const response=await fetch(api+'/api/crop-diagnose',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({...prepared,crop:$f('diagnoseCrop').value,notes:$f('diagnoseNotes').value,language:getLang()})});
+      const result=await response.json().catch(()=>({}));if(!response.ok) throw new Error(result.error||'Photo analysis failed.');
+      out.textContent=result.text+'\n\n'+result.advisory;out.hidden=false;status.textContent='Analysis complete · '+(result.provider||'AI')+' · '+(result.model||'')+' · '+new Date().toLocaleString();
     } catch(e) { status.textContent=e.message; }
+    finally {button.disabled=false;}
   });
 
   // Leaflet satellite imagery with a farmer-drawn polygon and real Sentinel-2 NDVI when enabled.
