@@ -9,6 +9,9 @@
 <script src="/api-config.js"></script>
 <script>/* Empty means this same Node host; for Android/static frontends, configure api-config.js. */window.GRAMSUTRA_API=String(window.GRAMSUTRA_API||'').replace(/\/$/,'');</script>
 <meta name="theme-color" content="#22d65f">
+<link rel="icon" type="image/png" sizes="192x192" href="/icon-192.png?v=4">
+<link rel="apple-touch-icon" href="/icon-192.png?v=4">
+<link rel="manifest" href="/manifest.webmanifest?v=4">
 <meta name="mobile-web-app-capable" content="yes">
 <link href="https://fonts.googleapis.com/css2?family=Mukta:wght@400;600;800&family=Baloo+2:wght@800&display=swap" rel="stylesheet">
 <style>
@@ -76,7 +79,7 @@ input[type=range]{accent-color:#16a34a;padding:0}
 .tk{display:flex;gap:12px;align-items:flex-start;cursor:pointer}
 .tk input{width:28px;min-height:28px;margin-top:4px;accent-color:#16a34a;flex:none}
 .tk.dn{opacity:.6}.tk.dn b{text-decoration:line-through}
-.brand{color:#16a34a;font-family:'Baloo 2','Mukta',system-ui,sans-serif;font-weight:800;font-size:32px;line-height:1.1;letter-spacing:1.5px;text-align:left;margin:2px 0 12px}
+.brand img{display:block;width:76px;height:76px;object-fit:contain}.brand{color:#16a34a;font-family:'Baloo 2','Mukta',system-ui,sans-serif;font-weight:800;font-size:32px;line-height:1.1;letter-spacing:1.5px;text-align:left;margin:2px 0 12px}
 .topbar{display:flex;justify-content:space-between;align-items:center;margin:2px 0 12px}
 .topbar .brand{margin:0}
 #pbtn{width:48px;height:48px;border-radius:50%;border:2px solid var(--green);background:var(--green);color:var(--on-green);display:grid;place-items:center;cursor:pointer;font:inherit;font-size:22px;font-weight:800;padding:0}
@@ -254,7 +257,7 @@ nav button svg{display:block;margin:0 auto 2px}
 <div id="splash" role="status" aria-label="Loading GramSutra AI"><img class="logo" src="/icon-192.png" alt="" style="background:none;width:96px;height:96px;border-radius:24px"><h1>GramSutra AI</h1><p>Your village, your farm, one plan</p><div class="bar"><i></i></div></div>
 <nav role="tablist" id="nav"></nav>
 <main>
-<div class="topbar"><div class="brand">🌿 GramSutra</div><div class="top-location">📍 <span id="top-village">Set your village</span></div><div class="top-weather">🌤️ <b>--°C</b><small>Live weather not loaded</small></div><button id="pbtn" aria-label="Log in"></button></div>
+<div class="topbar"><div class="brand"><img src="/icon-192.png?v=4" alt="GramSutra AI logo"></div><div class="top-location">📍 <span id="top-village">Set your village</span></div><div class="top-weather">🌤️ <b>--°C</b><small>Live weather not loaded</small></div><button id="pbtn" aria-label="Log in"></button></div>
 
 <section id="home">
   <div class="greet" id="greet"></div>
