@@ -106,7 +106,7 @@ http.createServer(async (req, res) => {
       const system = 'You are Pragati AI, a cautious Indian crop-health assistant. Inspect the supplied crop image. The first line of your reply must be exactly one of: VERDICT: HEALTHY, VERDICT: NEEDS_ATTENTION, VERDICT: UNHEALTHY, VERDICT: UNSURE (use UNSURE if the image is unclear or not a crop plant). Then use clear headings: What I can see; Possible causes (2-4, never claim certainty); What to check next; Safe first steps; When to contact an expert. Give practical, low-risk steps. Never prescribe pesticide products, chemical names, or doses. Explain that similar symptoms can have different causes and a photo cannot confirm a diagnosis. If the image is unclear, ask for a sharper close-up and a whole-plant photo. Answer entirely in the requested language.';
       let text = '', model = '';
       if (groqKey) {
-        model = process.env.GROQ_VISION_MODEL || 'qwen/qwen3.6-27b';
+        model = process.env.GROQ_VISION_MODEL || 'qwen/qwen3.8-27b';
         const r = await fetch('https://api.groq.com/openai/v1/chat/completions', {
           method: 'POST', headers: { 'content-type': 'application/json', authorization: 'Bearer ' + groqKey },
           body: JSON.stringify({ model, messages: [
@@ -178,7 +178,7 @@ http.createServer(async (req, res) => {
       model: process.env.GEMINI_MODEL || 'gemini-3.8-flash',
       cropDiagnosisConfigured: Boolean(process.env.GROQ_API_KEY || process.env.GEMINI_API_KEY),
       cropVisionProvider: process.env.GROQ_API_KEY ? 'Groq Vision' : (process.env.GEMINI_API_KEY ? 'Google Gemini Vision' : null),
-      cropVisionModel: process.env.GROQ_API_KEY ? (process.env.GROQ_VISION_MODEL || 'qwen/qwen3.6-27b') : (process.env.GEMINI_MODEL || 'gemini-3.8-flash'),
+      cropVisionModel: process.env.GROQ_API_KEY ? (process.env.GROQ_VISION_MODEL || 'qwen/qwen3.8-27b') : (process.env.GEMINI_MODEL || 'gemini-3.8-flash'),
       hint: process.env.GEMINI_API_KEY ? 'Gemini chat key is configured.' : 'Add GEMINI_API_KEY for chat. Crop photo diagnosis can use GROQ_API_KEY or GEMINI_API_KEY.'
     });
   }
