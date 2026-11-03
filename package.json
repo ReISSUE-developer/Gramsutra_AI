@@ -3,6 +3,24 @@
   "version": "1.0.0",
   "description": "GramSutra AI app with Pragati AI, the intelligent farming companion",
   "main": "server.js",
-  "scripts": { "start": "node server.js" },
-  "engines": { "node": ">=18" }
+  "scripts": {
+    "start": "node server.js",
+    "cap:add": "cap add android && cap add ios",
+    "cap:sync": "cap sync",
+    "assets": "capacitor-assets generate"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "devDependencies": {
+    "@capacitor/cli": "^7.0.0",
+    "@capacitor/assets": "^3.0.5"
+  },
+  "dependencies": {
+    "@capacitor/core": "^7.0.0",
+    "@capacitor/android": "^7.0.0",
+    "@capacitor/ios": "^7.0.0",
+    "@capacitor/geolocation": "^7.0.0",
+    "@capacitor/camera": "^7.0.0"
+  }
 }
