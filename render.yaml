@@ -13,6 +13,10 @@ services:
       - key: GROQ_MODEL
         value: llama-3.3-70b-versatile
       - key: GROQ_VISION_MODEL
-        value: qwen/qwen3.8-27b
+        value: qwen/qwen3.6-27b
       - key: GROQ_API_KEY
+        sync: false
+      - key: GEMINI_MODEL
+        value: gemini-3.8-flash
+      - key: GEMINI_API_KEY
         sync: false
