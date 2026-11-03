@@ -186,3 +186,21 @@ create policy "Farmers manage their own tasks" on public.farm_tasks for all to a
 
 -- If the marketplace and calendar tables are added after the app is already live,
 -- re-run this file safely: all additions and policies above are idempotent.
+
+-- ===== Communities (groups), messages and reports =====
+create table if not exists public.communities (id uuid primary key default gen_random_uuid(), name text not null check (char_length(name) between 3 and 60), description text check (char_length(description) <= 300), village text, crop text, created_by uuid not null references public.profiles(id) on delete cascade, created_at timestamptz not null default now());
+create table if not exists public.community_members (community_id uuid references public.communities(id) on delete cascade, user_id uuid references public.profiles(id) on delete cascade, role text not null default 'member', joined_at timestamptz not null default now(), primary key (community_id, user_id));
+create table if not exists public.community_posts (id uuid primary key default gen_random_uuid(), community_id uuid not null references public.communities(id) on delete cascade, user_id uuid not null references public.profiles(id) on delete cascade, body text not null check (char_length(body) between 1 and 1000), created_at timestamptz not null default now());
+create table if not exists public.community_reports (id uuid primary key default gen_random_uuid(), post_id uuid not null references public.community_posts(id) on delete cascade, reporter_id uuid not null references public.profiles(id) on delete cascade, reason text check (char_length(reason) <= 300), created_at timestamptz not null default now());
+alter table public.communities enable row level security; alter table public.community_members enable row level security; alter table public.community_posts enable row level security; alter table public.community_reports enable row level security;
+create policy "Members see communities" on public.communities for select to authenticated using (true);
+create policy "Create own community" on public.communities for insert to authenticated with check (created_by = auth.uid());
+create policy "Owner edits community" on public.communities for update to authenticated using (created_by = auth.uid()) with check (created_by = auth.uid());
+create policy "Owner deletes community" on public.communities for delete to authenticated using (created_by = auth.uid());
+create policy "See memberships" on public.community_members for select to authenticated using (true);
+create policy "Join as yourself" on public.community_members for insert to authenticated with check (user_id = auth.uid());
+create policy "Leave yourself" on public.community_members for delete to authenticated using (user_id = auth.uid());
+create policy "Members read posts" on public.community_posts for select to authenticated using (exists (select 1 from public.community_members m where m.community_id = community_posts.community_id and m.user_id = auth.uid()));
+create policy "Members write posts" on public.community_posts for insert to authenticated with check (user_id = auth.uid() and exists (select 1 from public.community_members m where m.community_id = community_posts.community_id and m.user_id = auth.uid()));
+create policy "Delete own posts" on public.community_posts for delete to authenticated using (user_id = auth.uid());
+create policy "Report a post" on public.community_reports for insert to authenticated with check (reporter_id = auth.uid());
