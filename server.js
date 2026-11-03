@@ -1,4 +1,4 @@
-// GramSutra AI server: serves the app and forwards Pragati AI requests to Groq.
+// GramSutra AI server: serves the app and forwards Pragati AI requests to Gemini.
 // Your API key stays on this server and is never sent to the browser.
 const http = require('http');
 const crypto = require('crypto');
@@ -23,9 +23,8 @@ const path = require('path');
 })();
 
 const PORT = process.env.PORT || 3000;
-const KEY = process.env.GROQ_API_KEY;
-const MODEL = process.env.GROQ_MODEL || 'llama-3.3-70b-versatile';
-const VISION_MODEL = process.env.GROQ_VISION_MODEL || 'qwen/qwen3.8-27b';
+const KEY = process.env.GEMINI_API_KEY;
+const MODEL = process.env.GEMINI_MODEL || 'gemini-3.8-flash';
 const PUBLIC = path.join(__dirname, 'public');
 const TYPES = { '.html': 'text/html; charset=utf-8', '.js': 'text/javascript; charset=utf-8', '.json': 'application/json', '.svg': 'image/svg+xml', '.png': 'image/png', '.jpg': 'image/jpeg', '.jpeg': 'image/jpeg', '.webmanifest': 'application/manifest+json' };
 
@@ -41,13 +40,13 @@ function limited(ip) {
   return list.length > 30;
 }
 
-function groqErrorMessage(status, data) {
-  const providerMessage = data?.error?.message || 'Groq rejected the request.';
-  if (status === 400) return 'Groq could not process this request: ' + providerMessage;
-  if (status === 401 || status === 403) return 'Groq rejected the API key. Create a valid key in Groq Console and set GROQ_API_KEY in Render.';
-  if (status === 404) return 'The configured Groq model was not found. Check GROQ_MODEL against the models available to your Groq account.';
-  if (status === 429) return 'Groq rate limit or quota reached. Check Groq Console usage and limits, then retry.';
-  if (status >= 500) return 'Groq is temporarily unavailable. Please retry shortly.';
+function geminiErrorMessage(status, data) {
+  const providerMessage = data?.error?.message || 'Google Gemini rejected the request.';
+  if (status === 400) return 'Gemini could not process this request: ' + providerMessage;
+  if (status === 401 || status === 403) return 'Google Gemini rejected the API key or project permissions. Create/check the key in Google AI Studio and confirm the Gemini API is enabled.';
+  if (status === 404) return 'The configured Gemini model was not found. Check GEMINI_MODEL against the models available to your API key.';
+  if (status === 429) return 'Gemini API quota or rate limit reached. Check Google AI Studio → Usage and Limits; wait for the quota window or review billing.';
+  if (status >= 500) return 'Google Gemini is temporarily unavailable. Please retry shortly.';
   return providerMessage;
 }
 
@@ -95,20 +94,46 @@ http.createServer(async (req, res) => {
     catch (e) { return json(res, 502, { error: 'Mandi price provider is temporarily unavailable.', detail: e.message }); }
   }
   if (req.method === 'POST' && parsedUrl.pathname === '/api/crop-diagnose') {
-    if (!KEY) return json(res, 503, { error: 'Photo diagnosis is not configured: add GROQ_API_KEY to the server environment.' });
+    const groqKey = process.env.GROQ_API_KEY;
+    const geminiKey = process.env.GEMINI_API_KEY;
+    if (!groqKey && !geminiKey) return json(res, 503, { error: 'Photo diagnosis is not configured. Add GROQ_API_KEY (recommended) or GEMINI_API_KEY to the server environment.' });
     if (limited(req.socket.remoteAddress)) return json(res, 429, { error: 'Too many diagnosis requests. Please try later.' });
     try {
       const body = JSON.parse(await readBody(req, 12_000_000));
       const mime = String(body.mimeType || ''); const image = String(body.imageBase64 || '');
       if (!['image/jpeg','image/png','image/webp'].includes(mime) || !image || image.length > 10_000_000) return json(res, 400, { error: 'Upload a JPEG, PNG or WEBP image under 7 MB.' });
-      const prompt = safeText(body.notes, 1000);
-      const instructions = 'You are Pragati AI, a cautious Indian crop-health assistant. Inspect the supplied crop image. Give visible observations, 2-4 possible causes (not a definitive diagnosis), questions needed to distinguish them, safe non-chemical first steps, and when to contact a KVK/agriculture officer. Never prescribe pesticide products or doses. Mention image limitations and that leaf symptoms can overlap. Answer in the requested language if specified. Do not invent confidence or identify a disease as certain.';
-      const upstream = await fetch('https://api.groq.com/openai/v1/responses', { method: 'POST', headers: { 'content-type': 'application/json', authorization: 'Bearer ' + KEY }, body: JSON.stringify({ model: VISION_MODEL, instructions, input: [{ role: 'user', content: [{ type: 'input_text', text: 'Crop: ' + safeText(body.crop, 60) + '. Language: ' + safeText(body.language, 40) + '. Farmer notes: ' + prompt + '. Please inspect cautiously.' }, { type: 'input_image', image_url: 'data:' + mime + ';base64,' + image, detail: 'auto' }] }], max_output_tokens: 900 }), signal: AbortSignal.timeout(90000) });
-      const out = await upstream.json().catch(() => ({}));
-      if (!upstream.ok) return json(res, upstream.status, { error: groqErrorMessage(upstream.status, out) });
-      const text = out.output_text || (out.output || []).flatMap(x => x.content || []).map(x => x.text || '').filter(Boolean).join('\n');
-      return json(res, 200, { text, model: VISION_MODEL, advisory: 'AI suggestions are not a confirmed diagnosis. Verify with a local agriculture expert before treatment.' });
-    } catch (e) { const timeout = e.name === 'TimeoutError' || e.name === 'AbortError'; return json(res, timeout ? 504 : 502, { error: timeout ? 'Groq took too long to analyse the image. Please try again.' : 'Could not process the crop image: ' + e.message }); }
+      const crop = safeText(body.crop, 60), notes = safeText(body.notes, 1000), language = safeText(body.language, 40) || 'English';
+      const system = 'You are Pragati AI, a cautious Indian crop-health assistant. Inspect the supplied crop image. The first line of your reply must be exactly one of: VERDICT: HEALTHY, VERDICT: NEEDS_ATTENTION, VERDICT: UNHEALTHY, VERDICT: UNSURE (use UNSURE if the image is unclear or not a crop plant). Then use clear headings: What I can see; Possible causes (2-4, never claim certainty); What to check next; Safe first steps; When to contact an expert. Give practical, low-risk steps. Never prescribe pesticide products, chemical names, or doses. Explain that similar symptoms can have different causes and a photo cannot confirm a diagnosis. If the image is unclear, ask for a sharper close-up and a whole-plant photo. Answer entirely in the requested language.';
+      let text = '', model = '';
+      if (groqKey) {
+        model = process.env.GROQ_VISION_MODEL || 'qwen/qwen3.6-27b';
+        const r = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+          method: 'POST', headers: { 'content-type': 'application/json', authorization: 'Bearer ' + groqKey },
+          body: JSON.stringify({ model, messages: [
+            { role: 'system', content: system },
+            { role: 'user', content: [
+              { type: 'text', text: 'Crop: ' + (crop || 'not specified') + '. Farmer observations: ' + (notes || 'not provided') + '. Reply in ' + language + '. Examine the attached image cautiously.' },
+              { type: 'image_url', image_url: { url: 'data:' + mime + ';base64,' + image } }
+            ] }
+          ], temperature: 0.2, max_completion_tokens: 1000 }), signal: AbortSignal.timeout(90000)
+        });
+        const out = await r.json().catch(() => ({}));
+        if (!r.ok) {
+          const msg = out?.error?.message || 'Groq vision request failed.';
+          return json(res, r.status, { error: r.status === 401 || r.status === 403 ? 'Groq rejected the API key. Check GROQ_API_KEY in Render.' : r.status === 429 ? 'Groq rate limit or quota reached. Please try again later.' : 'Crop photo analysis failed: ' + msg });
+        }
+        text = out.choices?.[0]?.message?.content || '';
+      } else {
+        model = process.env.GEMINI_MODEL || 'gemini-3.8-flash';
+        const url = 'https://generativelanguage.googleapis.com/v1beta/models/' + encodeURIComponent(model) + ':generateContent';
+        const r = await fetch(url, { method: 'POST', headers: { 'content-type': 'application/json', 'x-goog-api-key': geminiKey }, body: JSON.stringify({ systemInstruction: { parts: [{ text: system }] }, contents: [{ role: 'user', parts: [{ text: 'Crop: ' + (crop || 'not specified') + '. Language: ' + language + '. Farmer notes: ' + (notes || 'not provided') + '. Please inspect cautiously.' }, { inlineData: { mimeType: mime, data: image } }] }], generationConfig: { maxOutputTokens: 1000, temperature: 0.2 } }), signal: AbortSignal.timeout(90000) });
+        const out = await r.json().catch(() => ({}));
+        if (!r.ok) return json(res, r.status, { error: geminiErrorMessage(r.status, out) });
+        text = (out.candidates?.[0]?.content?.parts || []).map(x => x.text || '').filter(Boolean).join('\n');
+      }
+      if (!text) return json(res, 502, { error: 'The AI returned an empty result. Please try a clearer crop photo.' });
+      return json(res, 200, { text, model, provider: groqKey ? 'Groq Vision' : 'Google Gemini', advisory: 'AI suggestions are not a confirmed diagnosis. Verify with a local KVK or agriculture officer before treatment.' });
+    } catch (e) { const timeout = e.name === 'TimeoutError' || e.name === 'AbortError'; return json(res, timeout ? 504 : 502, { error: timeout ? 'AI took too long to analyse the image. Please try again.' : 'Could not process the crop image: ' + e.message }); }
   }
   if (req.method === 'POST' && parsedUrl.pathname === '/api/satellite/ndvi') {
     const clientId = process.env.SENTINELHUB_CLIENT_ID, clientSecret = process.env.SENTINELHUB_CLIENT_SECRET;
@@ -129,14 +154,32 @@ http.createServer(async (req, res) => {
       res.writeHead(200, { 'content-type': 'image/png', 'cache-control': 'no-store', 'x-imagery-source': 'Sentinel-2 L2A / Sentinel Hub', 'x-analysis-window': '45 days' }); return res.end(Buffer.from(await processRes.arrayBuffer()));
     } catch (e) { return json(res, 502, { error: e.message }); }
   }
+  if (req.method === 'POST' && parsedUrl.pathname === '/api/account/delete') {
+    const base = process.env.SUPABASE_URL, svc = process.env.SUPABASE_SERVICE_ROLE_KEY;
+    if (!base || !svc) return json(res, 503, { error: 'Account deletion is not configured on the server.' });
+    if (limited(req.socket.remoteAddress)) return json(res, 429, { error: 'Too many requests. Please try later.' });
+    const token = String(req.headers.authorization || '').replace(/^Bearer\s+/i, '');
+    if (!token) return json(res, 401, { error: 'Please sign in first.' });
+    try {
+      const who = await fetch(base + '/auth/v1/user', { headers: { apikey: svc, authorization: 'Bearer ' + token } });
+      if (!who.ok) return json(res, 401, { error: 'Your session expired. Sign in again, then retry.' });
+      const user = await who.json();
+      const del = await fetch(base + '/auth/v1/admin/users/' + encodeURIComponent(user.id), { method: 'DELETE', headers: { apikey: svc, authorization: 'Bearer ' + svc } });
+      if (!del.ok) return json(res, 502, { error: 'Could not delete the account. Please try again.' });
+      return json(res, 200, { ok: true });
+    } catch (e) { return json(res, 502, { error: 'Could not reach the account service.' }); }
+  }
   if (req.method === 'GET' && parsedUrl.pathname === '/api/health') {
     return json(res, 200, {
       ok: true,
       service: 'GramSutra API',
-      chatConfigured: Boolean(process.env.GROQ_API_KEY),
-      provider: 'Groq API',
-      model: process.env.GROQ_MODEL || 'llama-3.3-70b-versatile',
-      hint: process.env.GROQ_API_KEY ? 'Groq API key is configured.' : 'Add GROQ_API_KEY to the server environment and redeploy.'
+      chatConfigured: Boolean(process.env.GEMINI_API_KEY),
+      provider: 'Google Gemini API',
+      model: process.env.GEMINI_MODEL || 'gemini-3.8-flash',
+      cropDiagnosisConfigured: Boolean(process.env.GROQ_API_KEY || process.env.GEMINI_API_KEY),
+      cropVisionProvider: process.env.GROQ_API_KEY ? 'Groq Vision' : (process.env.GEMINI_API_KEY ? 'Google Gemini Vision' : null),
+      cropVisionModel: process.env.GROQ_API_KEY ? (process.env.GROQ_VISION_MODEL || 'qwen/qwen3.6-27b') : (process.env.GEMINI_MODEL || 'gemini-3.8-flash'),
+      hint: process.env.GEMINI_API_KEY ? 'Gemini chat key is configured.' : 'Add GEMINI_API_KEY for chat. Crop photo diagnosis can use GROQ_API_KEY or GEMINI_API_KEY.'
     });
   }
   if (req.method === 'GET' && req.url === '/api/ice-config') {
@@ -156,51 +199,72 @@ http.createServer(async (req, res) => {
     return res.end(JSON.stringify({ iceServers, turnConfigured: iceServers.length > 2 }));
   }
   if (req.method === 'POST' && parsedUrl.pathname === '/api/chat') {
-    if (!KEY) return json(res, 503, { error: 'Pragati AI is not configured: GROQ_API_KEY is missing on the server. Add a Groq API key in Render → Environment, then redeploy.' });
+    if (!process.env.GEMINI_API_KEY) {
+      return json(res, 503, { error: 'Pragati AI is not configured: GEMINI_API_KEY is missing on the server. Add a Gemini API key in Render → Environment, then redeploy.' });
+    }
     if (limited(req.socket.remoteAddress)) return json(res, 429, { error: 'Too many requests from this connection. Please wait a few minutes and try again.' });
     let payload;
     try { payload = JSON.parse(await readBody(req, 1_500_000)); }
     catch (e) { return json(res, 400, { error: e.message === 'too large' ? 'Your chat message is too large. Please shorten it.' : 'The chat request was not valid JSON.' }); }
-    if (!payload || !Array.isArray(payload.messages) || payload.messages.length === 0) return json(res, 400, { error: 'The chat request is missing its conversation messages. Please send your question again.' });
-    const model = process.env.GROQ_MODEL || 'llama-3.3-70b-versatile';
+    if (!payload || !Array.isArray(payload.messages) || payload.messages.length === 0) {
+      return json(res, 400, { error: 'The chat request is missing its conversation messages. Please send your question again.' });
+    }
+    const model = process.env.GEMINI_MODEL || 'gemini-3.8-flash';
     try {
-      const messages = [];
-      if (payload.system) messages.push({ role: 'system', content: String(payload.system) });
+      const contents = [];
+      const toolNames = new Map();
       for (const message of payload.messages) {
-        const role = message.role === 'assistant' ? 'assistant' : 'user';
+        if (message.role === 'assistant' && Array.isArray(message.content)) {
+          for (const block of message.content) if (block?.type === 'tool_use' && block.id && block.name) toolNames.set(String(block.id), String(block.name));
+        }
+        const role = message.role === 'assistant' ? 'model' : 'user';
         const source = message.content;
-        if (typeof source === 'string') { if (source.trim()) messages.push({ role, content: source }); continue; }
-        if (!Array.isArray(source)) continue;
-        if (role === 'assistant') {
-          const textParts = source.filter(b => b?.type === 'text' && b.text).map(b => String(b.text));
-          const toolCalls = source.filter(b => b?.type === 'tool_use' && b.name).map(b => ({ id: String(b.id || crypto.randomUUID()), type: 'function', function: { name: String(b.name), arguments: JSON.stringify(b.input || {}) } }));
-          if (textParts.length || toolCalls.length) messages.push({ role: 'assistant', ...(textParts.length ? { content: textParts.join('\n') } : { content: null }), ...(toolCalls.length ? { tool_calls: toolCalls } : {}) });
-        } else {
+        const parts = [];
+        if (typeof source === 'string') {
+          if (source.trim()) parts.push({ text: source });
+        } else if (Array.isArray(source)) {
           for (const block of source) {
-            if (block?.type === 'text' && block.text) messages.push({ role: 'user', content: String(block.text) });
-            else if (block?.type === 'tool_result') {
-              let result = block.content; if (typeof result !== 'string') result = JSON.stringify(result ?? null);
-              messages.push({ role: 'tool', tool_call_id: String(block.tool_use_id || ''), content: result });
+            if (!block || typeof block !== 'object') continue;
+            if (block.type === 'text' && block.text) parts.push({ text: String(block.text) });
+            else if (block.type === 'tool_use' && block.name) parts.push({ functionCall: { id: String(block.id || crypto.randomUUID()), name: String(block.name), args: block.input || {} } });
+            else if (block.type === 'tool_result') {
+              let result = block.content;
+              if (typeof result === 'string') { try { result = JSON.parse(result); } catch { result = { text: result }; } }
+              parts.push({ functionResponse: { id: String(block.tool_use_id || ''), name: String(block.name || toolNames.get(String(block.tool_use_id || '')) || 'tool_result'), response: { result: result ?? null } } });
             }
           }
         }
+        if (parts.length) contents.push({ role, parts });
       }
-      const tools = Array.isArray(payload.tools) ? payload.tools.filter(t => t && t.name).map(t => ({ type: 'function', function: { name: String(t.name), description: String(t.description || ''), parameters: t.input_schema || { type: 'object', properties: {} } } })) : [];
-      const requestBody = { model, messages, temperature: 0.4, max_tokens: 1200, ...(tools.length ? { tools, tool_choice: 'auto' } : {}) };
-      const upstream = await fetch('https://api.groq.com/openai/v1/chat/completions', { method: 'POST', headers: { 'content-type': 'application/json', authorization: 'Bearer ' + KEY }, body: JSON.stringify(requestBody), signal: AbortSignal.timeout(90000) });
-      const raw = await upstream.text(); let data; try { data = JSON.parse(raw); } catch { data = { error: { message: raw.slice(0, 500) || 'Groq returned an unreadable response.' } }; }
-      if (!upstream.ok) { const message = groqErrorMessage(upstream.status, data); console.error('Groq API error', upstream.status, data?.error?.message || raw.slice(0, 300)); return json(res, upstream.status, { error: message, providerStatus: upstream.status, model }); }
-      const choice = data.choices?.[0]?.message || {}; const content = [];
-      if (typeof choice.content === 'string' && choice.content) content.push({ type: 'text', text: choice.content });
-      for (const call of choice.tool_calls || []) {
-        let input = {}; try { input = JSON.parse(call.function?.arguments || '{}'); } catch {}
-        content.push({ type: 'tool_use', id: String(call.id || crypto.randomUUID()), name: String(call.function?.name || ''), input });
+      const tools = Array.isArray(payload.tools) ? payload.tools.filter(t => t && t.name).map(t => ({ name: String(t.name), description: String(t.description || ''), parameters: t.input_schema || { type: 'object', properties: {} } })) : [];
+      const requestBody = {
+        systemInstruction: { parts: [{ text: String(payload.system || '') }] },
+        contents,
+        generationConfig: { maxOutputTokens: 1200 },
+        ...(tools.length ? { tools: [{ functionDeclarations: tools }], toolConfig: { functionCallingConfig: { mode: 'AUTO' } } } : {})
+      };
+      const endpoint = 'https://generativelanguage.googleapis.com/v1beta/models/' + encodeURIComponent(model) + ':generateContent';
+      const upstream = await fetch(endpoint, { method: 'POST', headers: { 'content-type': 'application/json', 'x-goog-api-key': process.env.GEMINI_API_KEY }, body: JSON.stringify(requestBody), signal: AbortSignal.timeout(90000) });
+      const raw = await upstream.text();
+      let data; try { data = JSON.parse(raw); } catch { data = { error: { message: raw.slice(0, 500) || 'Gemini returned an unreadable response.' } }; }
+      if (!upstream.ok) {
+        const message = geminiErrorMessage(upstream.status, data);
+        console.error('Gemini API error', upstream.status, data?.error?.message || raw.slice(0, 300));
+        return json(res, upstream.status, { error: message, providerStatus: upstream.status, model });
       }
-      if (!content.length) return json(res, 502, { error: 'Groq returned no text or tool action. Please try again.' });
-      return json(res, 200, { content, model, provider: 'Groq API' });
+      const parts = data.candidates?.[0]?.content?.parts || [];
+      const content = [];
+      for (const part of parts) {
+        if (typeof part.text === 'string' && part.text) content.push({ type: 'text', text: part.text });
+        if (part.functionCall?.name) content.push({ type: 'tool_use', id: String(part.functionCall.id || crypto.randomUUID()), name: part.functionCall.name, input: part.functionCall.args || {} });
+      }
+      if (!content.length && data.promptFeedback?.blockReason) return json(res, 400, { error: 'Gemini blocked this request (' + data.promptFeedback.blockReason + '). Please rephrase your question.' });
+      if (!content.length) return json(res, 502, { error: 'Gemini returned no text or tool action. Please try again.' });
+      return json(res, 200, { content, model, provider: 'Google Gemini API' });
     } catch (e) {
-      const timeout = e.name === 'TimeoutError' || e.name === 'AbortError'; console.error('Groq chat request failed:', e.message);
-      return json(res, timeout ? 504 : 502, { error: timeout ? 'Groq took too long to respond. Please try again.' : 'The GramSutra server could not reach Groq. Check server internet access and try again.', detail: process.env.NODE_ENV === 'development' ? e.message : undefined });
+      const timeout = e.name === 'TimeoutError' || e.name === 'AbortError';
+      console.error('Gemini chat request failed:', e.message);
+      return json(res, timeout ? 504 : 502, { error: timeout ? 'Gemini took too long to respond. Please try again.' : 'The GramSutra server could not reach Google Gemini. Check server internet access and try again.', detail: process.env.NODE_ENV === 'development' ? e.message : undefined });
     }
   }
 
