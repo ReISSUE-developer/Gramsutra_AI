@@ -34,6 +34,7 @@ async function getWeather(url) { const r = await fetch(url, { headers: { accept:
 
 // Simple per-IP limit: 30 chat calls per 10 minutes.
 const hits = new Map();
+const translateHits = new Map();
 function limited(ip) {
   const now = Date.now(), list = (hits.get(ip) || []).filter(t => now - t < 600000);
   list.push(now); hits.set(ip, list);
@@ -197,6 +198,36 @@ http.createServer(async (req, res) => {
     }
     res.writeHead(200, { 'content-type': 'application/json', 'cache-control': 'no-store' });
     return res.end(JSON.stringify({ iceServers, turnConfigured: iceServers.length > 2 }));
+  }
+  if (req.method === 'POST' && parsedUrl.pathname === '/api/translate') {
+    if (!process.env.GEMINI_API_KEY) return json(res, 503, { error: 'App translation requires GEMINI_API_KEY on the server. Add it in your hosting environment and redeploy.' });
+    const ip = req.socket.remoteAddress || 'unknown';
+    const now = Date.now(), recent = (translateHits.get(ip) || []).filter(t => now - t < 600000);
+    if (recent.length >= 15) return json(res, 429, { error: 'Translation limit reached. Please wait a few minutes.' });
+    recent.push(now); translateHits.set(ip, recent);
+    let payload;
+    try { payload = JSON.parse(await readBody(req, 40000)); }
+    catch (e) { return json(res, 400, { error: 'Translation request was not valid JSON or was too large.' }); }
+    const language = safeText(payload?.language, 40);
+    const texts = Array.isArray(payload?.texts) ? payload.texts : [];
+    if (!language || !texts.length || texts.length > 80 || texts.some(t => typeof t !== 'string' || t.length > 500)) return json(res, 400, { error: 'Send up to 80 short interface strings and a target language.' });
+    if (language.toLowerCase() === 'english') return json(res, 200, { translations: texts });
+    try {
+      const model = process.env.GEMINI_MODEL || 'gemini-3.8-flash';
+      const prompt = 'You are a professional localization translator for GramSutra AI, an Indian farming application. Translate the following JSON array of short user-interface strings into ' + language + '. Return ONLY a valid JSON array of strings, with exactly ' + texts.length + ' items in the same order. Preserve numbers, units, currency symbols, percentages, emoji, punctuation, and placeholders. Use natural, simple language familiar to Indian farmers. Do not omit, combine, explain, or add strings. Keep product names, brand names, URLs, API/source names, and technical abbreviations such as AI, GPS, NDVI, Open-Meteo, and Supabase unchanged where appropriate. Input JSON: ' + JSON.stringify(texts);
+      const endpoint = 'https://generativelanguage.googleapis.com/v1beta/models/' + encodeURIComponent(model) + ':generateContent';
+      const upstream = await fetch(endpoint, { method: 'POST', headers: { 'content-type': 'application/json', 'x-goog-api-key': process.env.GEMINI_API_KEY }, body: JSON.stringify({ contents: [{ role: 'user', parts: [{ text: prompt }] }], generationConfig: { temperature: 0.1, maxOutputTokens: 8192, responseMimeType: 'application/json' } }), signal: AbortSignal.timeout(60000) });
+      const raw = await upstream.text(); let data; try { data = JSON.parse(raw); } catch { data = {}; }
+      if (!upstream.ok) return json(res, upstream.status, { error: geminiErrorMessage(upstream.status, data) });
+      const answer = (data.candidates?.[0]?.content?.parts || []).map(x => x.text || '').join('').trim();
+      let translated;
+      try { translated = JSON.parse(answer.replace(/^```(?:json)?\s*/i, '').replace(/\s*```$/, '')); } catch { return json(res, 502, { error: 'The translation service returned an invalid response. Please retry.' }); }
+      if (!Array.isArray(translated) || translated.length !== texts.length || translated.some(x => typeof x !== 'string')) return json(res, 502, { error: 'The translation service returned an incomplete translation. Please retry.' });
+      return json(res, 200, { translations: translated, language, model });
+    } catch (e) {
+      const timeout = e.name === 'TimeoutError' || e.name === 'AbortError';
+      return json(res, timeout ? 504 : 502, { error: timeout ? 'Translation took too long. Please retry.' : 'The translation service is temporarily unreachable.' });
+    }
   }
   if (req.method === 'POST' && parsedUrl.pathname === '/api/chat') {
     if (!process.env.GEMINI_API_KEY) {
