@@ -1,4 +1,4 @@
-// GramSutra AI server: serves the app and forwards Pragati AI requests to Gemini.
+// GramSutra AI server: serves the app and forwards Pragati AI requests to Groq (or Gemini fallback).
 // Your API key stays on this server and is never sent to the browser.
 const http = require('http');
 const crypto = require('crypto');
@@ -23,8 +23,8 @@ const path = require('path');
 })();
 
 const PORT = process.env.PORT || 3000;
-const KEY = process.env.GEMINI_API_KEY;
-const MODEL = process.env.GEMINI_MODEL || 'gemini-3.8-flash';
+const GROQ_MODEL = process.env.GROQ_MODEL || 'llama-3.3-70b-versatile';
+const GEMINI_MODEL = process.env.GEMINI_MODEL || 'gemini-3.8-flash';
 const PUBLIC = path.join(__dirname, 'public');
 const TYPES = { '.html': 'text/html; charset=utf-8', '.js': 'text/javascript; charset=utf-8', '.json': 'application/json', '.svg': 'image/svg+xml', '.png': 'image/png', '.jpg': 'image/jpeg', '.jpeg': 'image/jpeg', '.webmanifest': 'application/manifest+json' };
 
@@ -49,6 +49,15 @@ function geminiErrorMessage(status, data) {
   if (status === 429) return 'Gemini API quota or rate limit reached. Check Google AI Studio → Usage and Limits; wait for the quota window or review billing.';
   if (status >= 500) return 'Google Gemini is temporarily unavailable. Please retry shortly.';
   return providerMessage;
+}
+
+function groqErrorMessage(status, data) {
+  const message = data?.error?.message || 'Groq rejected the request.';
+  if (status === 401 || status === 403) return 'Groq rejected the API key or account permissions. Check GROQ_API_KEY in Render → Environment.';
+  if (status === 404) return 'The configured Groq model was not found. Check GROQ_MODEL against the models available to your Groq account.';
+  if (status === 429) return 'Groq rate limit or quota reached. Check your GroqCloud limits and try again later.';
+  if (status >= 500) return 'Groq is temporarily unavailable. Please retry shortly.';
+  return 'Groq could not process this request: ' + message;
 }
 
 function readBody(req, max = 300000) {
@@ -171,16 +180,18 @@ http.createServer(async (req, res) => {
     } catch (e) { return json(res, 502, { error: 'Could not reach the account service.' }); }
   }
   if (req.method === 'GET' && parsedUrl.pathname === '/api/health') {
+    const chatProvider = process.env.GROQ_API_KEY ? 'Groq API' : (process.env.GEMINI_API_KEY ? 'Google Gemini API' : null);
     return json(res, 200, {
       ok: true,
       service: 'GramSutra API',
-      chatConfigured: Boolean(process.env.GEMINI_API_KEY),
-      provider: 'Google Gemini API',
-      model: process.env.GEMINI_MODEL || 'gemini-3.8-flash',
+      chatConfigured: Boolean(process.env.GROQ_API_KEY || process.env.GEMINI_API_KEY),
+      provider: chatProvider,
+      model: process.env.GROQ_API_KEY ? GROQ_MODEL : (process.env.GEMINI_API_KEY ? GEMINI_MODEL : null),
+      translationConfigured: Boolean(process.env.GROQ_API_KEY || process.env.GEMINI_API_KEY),
       cropDiagnosisConfigured: Boolean(process.env.GROQ_API_KEY || process.env.GEMINI_API_KEY),
       cropVisionProvider: process.env.GROQ_API_KEY ? 'Groq Vision' : (process.env.GEMINI_API_KEY ? 'Google Gemini Vision' : null),
-      cropVisionModel: process.env.GROQ_API_KEY ? (process.env.GROQ_VISION_MODEL || 'qwen/qwen3.8-27b') : (process.env.GEMINI_MODEL || 'gemini-3.8-flash'),
-      hint: process.env.GEMINI_API_KEY ? 'Gemini chat key is configured.' : 'Add GEMINI_API_KEY for chat. Crop photo diagnosis can use GROQ_API_KEY or GEMINI_API_KEY.'
+      cropVisionModel: process.env.GROQ_API_KEY ? (process.env.GROQ_VISION_MODEL || 'qwen/qwen3.8-27b') : (process.env.GEMINI_API_KEY ? GEMINI_MODEL : null),
+      hint: chatProvider ? chatProvider + ' is configured.' : 'Add GROQ_API_KEY (recommended) or GEMINI_API_KEY in your hosting environment.'
     });
   }
   if (req.method === 'GET' && req.url === '/api/ice-config') {
@@ -200,7 +211,9 @@ http.createServer(async (req, res) => {
     return res.end(JSON.stringify({ iceServers, turnConfigured: iceServers.length > 2 }));
   }
   if (req.method === 'POST' && parsedUrl.pathname === '/api/translate') {
-    if (!process.env.GEMINI_API_KEY) return json(res, 503, { error: 'App translation requires GEMINI_API_KEY on the server. Add it in your hosting environment and redeploy.' });
+    const groqKey = process.env.GROQ_API_KEY;
+    const geminiKey = process.env.GEMINI_API_KEY;
+    if (!groqKey && !geminiKey) return json(res, 503, { error: 'App translation is not configured. Add GROQ_API_KEY (recommended) or GEMINI_API_KEY in Render → Environment.' });
     const ip = req.socket.remoteAddress || 'unknown';
     const now = Date.now(), recent = (translateHits.get(ip) || []).filter(t => now - t < 600000);
     if (recent.length >= 15) return json(res, 429, { error: 'Translation limit reached. Please wait a few minutes.' });
@@ -213,89 +226,109 @@ http.createServer(async (req, res) => {
     if (!language || !texts.length || texts.length > 80 || texts.some(t => typeof t !== 'string' || t.length > 500)) return json(res, 400, { error: 'Send up to 80 short interface strings and a target language.' });
     if (language.toLowerCase() === 'english') return json(res, 200, { translations: texts });
     try {
-      const model = process.env.GEMINI_MODEL || 'gemini-3.8-flash';
-      const prompt = 'You are a professional localization translator for GramSutra AI, an Indian farming application. Translate the following JSON array of short user-interface strings into ' + language + '. Return ONLY a valid JSON array of strings, with exactly ' + texts.length + ' items in the same order. Preserve numbers, units, currency symbols, percentages, emoji, punctuation, and placeholders. Use natural, simple language familiar to Indian farmers. Do not omit, combine, explain, or add strings. Keep product names, brand names, URLs, API/source names, and technical abbreviations such as AI, GPS, NDVI, Open-Meteo, and Supabase unchanged where appropriate. Input JSON: ' + JSON.stringify(texts);
-      const endpoint = 'https://generativelanguage.googleapis.com/v1beta/models/' + encodeURIComponent(model) + ':generateContent';
-      const upstream = await fetch(endpoint, { method: 'POST', headers: { 'content-type': 'application/json', 'x-goog-api-key': process.env.GEMINI_API_KEY }, body: JSON.stringify({ contents: [{ role: 'user', parts: [{ text: prompt }] }], generationConfig: { temperature: 0.1, maxOutputTokens: 8192, responseMimeType: 'application/json' } }), signal: AbortSignal.timeout(60000) });
-      const raw = await upstream.text(); let data; try { data = JSON.parse(raw); } catch { data = {}; }
-      if (!upstream.ok) return json(res, upstream.status, { error: geminiErrorMessage(upstream.status, data) });
-      const answer = (data.candidates?.[0]?.content?.parts || []).map(x => x.text || '').join('').trim();
-      let translated;
-      try { translated = JSON.parse(answer.replace(/^```(?:json)?\s*/i, '').replace(/\s*```$/, '')); } catch { return json(res, 502, { error: 'The translation service returned an invalid response. Please retry.' }); }
+      const prompt = 'You are a professional localization translator for GramSutra AI, an Indian farming application. Translate the following JSON array of short user-interface strings into ' + language + '. Return ONLY a valid JSON object with one property named translations, whose value is an array containing exactly ' + texts.length + ' translated strings in the same order. Preserve numbers, units, currency symbols, percentages, emoji, punctuation, and placeholders. Use natural, simple language familiar to Indian farmers. Do not omit, combine, explain, or add strings. Keep product names, brand names, URLs, API/source names, and technical abbreviations such as AI, GPS, NDVI, Open-Meteo, and Supabase unchanged where appropriate. Input JSON: ' + JSON.stringify(texts);
+      let translated, model, provider;
+      if (groqKey) {
+        model = process.env.GROQ_MODEL || GROQ_MODEL; provider = 'Groq API';
+        const upstream = await fetch('https://api.groq.com/openai/v1/chat/completions', { method: 'POST', headers: { 'content-type': 'application/json', authorization: 'Bearer ' + groqKey }, body: JSON.stringify({ model, messages: [{ role: 'user', content: prompt }], temperature: 0.1, max_completion_tokens: 8192, response_format: { type: 'json_object' } }), signal: AbortSignal.timeout(60000) });
+        const raw = await upstream.text(); let data; try { data = JSON.parse(raw); } catch { data = {}; }
+        if (!upstream.ok) return json(res, upstream.status, { error: groqErrorMessage(upstream.status, data) });
+        const answer = data.choices?.[0]?.message?.content || '';
+        try { const parsed = JSON.parse(answer.replace(/^```(?:json)?\s*/i, '').replace(/\s*```$/, '')); translated = Array.isArray(parsed) ? parsed : parsed.translations; } catch { return json(res, 502, { error: 'Groq returned an invalid translation response. Please retry.' }); }
+      } else {
+        model = GEMINI_MODEL; provider = 'Google Gemini API';
+        const endpoint = 'https://generativelanguage.googleapis.com/v1beta/models/' + encodeURIComponent(model) + ':generateContent';
+        const upstream = await fetch(endpoint, { method: 'POST', headers: { 'content-type': 'application/json', 'x-goog-api-key': geminiKey }, body: JSON.stringify({ contents: [{ role: 'user', parts: [{ text: prompt }] }], generationConfig: { temperature: 0.1, maxOutputTokens: 8192, responseMimeType: 'application/json' } }), signal: AbortSignal.timeout(60000) });
+        const raw = await upstream.text(); let data; try { data = JSON.parse(raw); } catch { data = {}; }
+        if (!upstream.ok) return json(res, upstream.status, { error: geminiErrorMessage(upstream.status, data) });
+        const answer = (data.candidates?.[0]?.content?.parts || []).map(x => x.text || '').join('').trim();
+        try { const parsed = JSON.parse(answer.replace(/^```(?:json)?\s*/i, '').replace(/\s*```$/, '')); translated = Array.isArray(parsed) ? parsed : parsed.translations; } catch { return json(res, 502, { error: 'The translation service returned an invalid response. Please retry.' }); }
+      }
       if (!Array.isArray(translated) || translated.length !== texts.length || translated.some(x => typeof x !== 'string')) return json(res, 502, { error: 'The translation service returned an incomplete translation. Please retry.' });
-      return json(res, 200, { translations: translated, language, model });
+      return json(res, 200, { translations: translated, language, model, provider });
     } catch (e) {
       const timeout = e.name === 'TimeoutError' || e.name === 'AbortError';
       return json(res, timeout ? 504 : 502, { error: timeout ? 'Translation took too long. Please retry.' : 'The translation service is temporarily unreachable.' });
     }
   }
   if (req.method === 'POST' && parsedUrl.pathname === '/api/chat') {
-    if (!process.env.GEMINI_API_KEY) {
-      return json(res, 503, { error: 'Pragati AI is not configured: GEMINI_API_KEY is missing on the server. Add a Gemini API key in Render → Environment, then redeploy.' });
-    }
+    const groqKey = process.env.GROQ_API_KEY;
+    const geminiKey = process.env.GEMINI_API_KEY;
+    if (!groqKey && !geminiKey) return json(res, 503, { error: 'Pragati AI is not configured: add GROQ_API_KEY (recommended) or GEMINI_API_KEY in Render → Environment, then redeploy.' });
     if (limited(req.socket.remoteAddress)) return json(res, 429, { error: 'Too many requests from this connection. Please wait a few minutes and try again.' });
     let payload;
     try { payload = JSON.parse(await readBody(req, 1_500_000)); }
     catch (e) { return json(res, 400, { error: e.message === 'too large' ? 'Your chat message is too large. Please shorten it.' : 'The chat request was not valid JSON.' }); }
-    if (!payload || !Array.isArray(payload.messages) || payload.messages.length === 0) {
-      return json(res, 400, { error: 'The chat request is missing its conversation messages. Please send your question again.' });
-    }
-    const model = process.env.GEMINI_MODEL || 'gemini-3.8-flash';
+    if (!payload || !Array.isArray(payload.messages) || payload.messages.length === 0) return json(res, 400, { error: 'The chat request is missing its conversation messages. Please send your question again.' });
     try {
-      const contents = [];
-      const toolNames = new Map();
-      for (const message of payload.messages) {
-        if (message.role === 'assistant' && Array.isArray(message.content)) {
-          for (const block of message.content) if (block?.type === 'tool_use' && block.id && block.name) toolNames.set(String(block.id), String(block.name));
-        }
-        const role = message.role === 'assistant' ? 'model' : 'user';
-        const source = message.content;
-        const parts = [];
-        if (typeof source === 'string') {
-          if (source.trim()) parts.push({ text: source });
-        } else if (Array.isArray(source)) {
-          for (const block of source) {
-            if (!block || typeof block !== 'object') continue;
-            if (block.type === 'text' && block.text) parts.push({ text: String(block.text) });
-            else if (block.type === 'tool_use' && block.name) parts.push({ functionCall: { id: String(block.id || crypto.randomUUID()), name: String(block.name), args: block.input || {} } });
-            else if (block.type === 'tool_result') {
-              let result = block.content;
-              if (typeof result === 'string') { try { result = JSON.parse(result); } catch { result = { text: result }; } }
-              parts.push({ functionResponse: { id: String(block.tool_use_id || ''), name: String(block.name || toolNames.get(String(block.tool_use_id || '')) || 'tool_result'), response: { result: result ?? null } } });
+      if (groqKey) {
+        const model = process.env.GROQ_MODEL || GROQ_MODEL;
+        const messages = [];
+        if (payload.system) messages.push({ role: 'system', content: String(payload.system) });
+        const toolNames = new Map();
+        for (const message of payload.messages) {
+          const source = message.content;
+          if (message.role === 'assistant' && Array.isArray(source)) {
+            const textParts = source.filter(b => b?.type === 'text' && b.text).map(b => String(b.text));
+            const toolCalls = source.filter(b => b?.type === 'tool_use' && b.name).map(b => {
+              const id = String(b.id || crypto.randomUUID()); toolNames.set(id, String(b.name));
+              return { id, type: 'function', function: { name: String(b.name), arguments: JSON.stringify(b.input || {}) } };
+            });
+            if (textParts.length || toolCalls.length) messages.push({ role: 'assistant', ...(textParts.length ? { content: textParts.join('\n') } : { content: null }), ...(toolCalls.length ? { tool_calls: toolCalls } : {}) });
+          } else if (Array.isArray(source)) {
+            for (const block of source) {
+              if (block?.type === 'tool_result') {
+                const content = typeof block.content === 'string' ? block.content : JSON.stringify(block.content ?? null);
+                messages.push({ role: 'tool', tool_call_id: String(block.tool_use_id || ''), content });
+              } else if (block?.type === 'text' && block.text) messages.push({ role: 'user', content: String(block.text) });
             }
-          }
+          } else if (typeof source === 'string' && source.trim()) messages.push({ role: message.role === 'assistant' ? 'assistant' : 'user', content: source });
+        }
+        const tools = Array.isArray(payload.tools) ? payload.tools.filter(t => t && t.name).map(t => ({ type: 'function', function: { name: String(t.name), description: String(t.description || ''), parameters: t.input_schema || { type: 'object', properties: {} } } })) : [];
+        const requestBody = { model, messages, temperature: 0.25, max_completion_tokens: 1200, ...(tools.length ? { tools, tool_choice: 'auto' } : {}) };
+        const upstream = await fetch('https://api.groq.com/openai/v1/chat/completions', { method: 'POST', headers: { 'content-type': 'application/json', authorization: 'Bearer ' + groqKey }, body: JSON.stringify(requestBody), signal: AbortSignal.timeout(90000) });
+        const raw = await upstream.text(); let data; try { data = JSON.parse(raw); } catch { data = { error: { message: raw.slice(0, 500) || 'Groq returned an unreadable response.' } }; }
+        if (!upstream.ok) { const message = groqErrorMessage(upstream.status, data); console.error('Groq chat API error', upstream.status, data?.error?.message || raw.slice(0, 300)); return json(res, upstream.status, { error: message, providerStatus: upstream.status, model }); }
+        const choice = data.choices?.[0]; const answer = choice?.message || {}; const content = [];
+        if (typeof answer.content === 'string' && answer.content.trim()) content.push({ type: 'text', text: answer.content });
+        for (const call of answer.tool_calls || []) {
+          let input = {}; try { input = JSON.parse(call.function?.arguments || '{}'); } catch { input = {}; }
+          if (call.function?.name) content.push({ type: 'tool_use', id: String(call.id || crypto.randomUUID()), name: call.function.name, input });
+        }
+        if (!content.length) return json(res, 502, { error: 'Groq returned no text or tool action. Please try again.' });
+        return json(res, 200, { content, model, provider: 'Groq API' });
+      }
+
+      // Gemini fallback remains available when GROQ_API_KEY is not configured.
+      const model = GEMINI_MODEL;
+      const contents = []; const toolNames = new Map();
+      for (const message of payload.messages) {
+        if (message.role === 'assistant' && Array.isArray(message.content)) for (const block of message.content) if (block?.type === 'tool_use' && block.id && block.name) toolNames.set(String(block.id), String(block.name));
+        const role = message.role === 'assistant' ? 'model' : 'user'; const source = message.content; const parts = [];
+        if (typeof source === 'string') { if (source.trim()) parts.push({ text: source }); }
+        else if (Array.isArray(source)) for (const block of source) {
+          if (!block || typeof block !== 'object') continue;
+          if (block.type === 'text' && block.text) parts.push({ text: String(block.text) });
+          else if (block.type === 'tool_use' && block.name) parts.push({ functionCall: { id: String(block.id || crypto.randomUUID()), name: String(block.name), args: block.input || {} } });
+          else if (block.type === 'tool_result') { let result = block.content; if (typeof result === 'string') { try { result = JSON.parse(result); } catch { result = { text: result }; } } parts.push({ functionResponse: { id: String(block.tool_use_id || ''), name: String(block.name || toolNames.get(String(block.tool_use_id || '')) || 'tool_result'), response: { result: result ?? null } } }); }
         }
         if (parts.length) contents.push({ role, parts });
       }
       const tools = Array.isArray(payload.tools) ? payload.tools.filter(t => t && t.name).map(t => ({ name: String(t.name), description: String(t.description || ''), parameters: t.input_schema || { type: 'object', properties: {} } })) : [];
-      const requestBody = {
-        systemInstruction: { parts: [{ text: String(payload.system || '') }] },
-        contents,
-        generationConfig: { maxOutputTokens: 1200 },
-        ...(tools.length ? { tools: [{ functionDeclarations: tools }], toolConfig: { functionCallingConfig: { mode: 'AUTO' } } } : {})
-      };
+      const requestBody = { systemInstruction: { parts: [{ text: String(payload.system || '') }] }, contents, generationConfig: { maxOutputTokens: 1200 }, ...(tools.length ? { tools: [{ functionDeclarations: tools }], toolConfig: { functionCallingConfig: { mode: 'AUTO' } } } : {}) };
       const endpoint = 'https://generativelanguage.googleapis.com/v1beta/models/' + encodeURIComponent(model) + ':generateContent';
-      const upstream = await fetch(endpoint, { method: 'POST', headers: { 'content-type': 'application/json', 'x-goog-api-key': process.env.GEMINI_API_KEY }, body: JSON.stringify(requestBody), signal: AbortSignal.timeout(90000) });
-      const raw = await upstream.text();
-      let data; try { data = JSON.parse(raw); } catch { data = { error: { message: raw.slice(0, 500) || 'Gemini returned an unreadable response.' } }; }
-      if (!upstream.ok) {
-        const message = geminiErrorMessage(upstream.status, data);
-        console.error('Gemini API error', upstream.status, data?.error?.message || raw.slice(0, 300));
-        return json(res, upstream.status, { error: message, providerStatus: upstream.status, model });
-      }
-      const parts = data.candidates?.[0]?.content?.parts || [];
-      const content = [];
-      for (const part of parts) {
-        if (typeof part.text === 'string' && part.text) content.push({ type: 'text', text: part.text });
-        if (part.functionCall?.name) content.push({ type: 'tool_use', id: String(part.functionCall.id || crypto.randomUUID()), name: part.functionCall.name, input: part.functionCall.args || {} });
-      }
+      const upstream = await fetch(endpoint, { method: 'POST', headers: { 'content-type': 'application/json', 'x-goog-api-key': geminiKey }, body: JSON.stringify(requestBody), signal: AbortSignal.timeout(90000) });
+      const raw = await upstream.text(); let data; try { data = JSON.parse(raw); } catch { data = { error: { message: raw.slice(0, 500) || 'Gemini returned an unreadable response.' } }; }
+      if (!upstream.ok) { const message = geminiErrorMessage(upstream.status, data); console.error('Gemini API error', upstream.status, data?.error?.message || raw.slice(0, 300)); return json(res, upstream.status, { error: message, providerStatus: upstream.status, model }); }
+      const parts = data.candidates?.[0]?.content?.parts || []; const content = [];
+      for (const part of parts) { if (typeof part.text === 'string' && part.text) content.push({ type: 'text', text: part.text }); if (part.functionCall?.name) content.push({ type: 'tool_use', id: String(part.functionCall.id || crypto.randomUUID()), name: part.functionCall.name, input: part.functionCall.args || {} }); }
       if (!content.length && data.promptFeedback?.blockReason) return json(res, 400, { error: 'Gemini blocked this request (' + data.promptFeedback.blockReason + '). Please rephrase your question.' });
       if (!content.length) return json(res, 502, { error: 'Gemini returned no text or tool action. Please try again.' });
       return json(res, 200, { content, model, provider: 'Google Gemini API' });
     } catch (e) {
       const timeout = e.name === 'TimeoutError' || e.name === 'AbortError';
-      console.error('Gemini chat request failed:', e.message);
-      return json(res, timeout ? 504 : 502, { error: timeout ? 'Gemini took too long to respond. Please try again.' : 'The GramSutra server could not reach Google Gemini. Check server internet access and try again.', detail: process.env.NODE_ENV === 'development' ? e.message : undefined });
+      console.error('AI chat request failed:', e.message);
+      return json(res, timeout ? 504 : 502, { error: timeout ? 'Pragati AI took too long to respond. Please try again.' : 'The GramSutra server could not reach the configured AI provider. Check the server logs and try again.', detail: process.env.NODE_ENV === 'development' ? e.message : undefined });
     }
   }
 
