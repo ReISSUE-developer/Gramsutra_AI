@@ -1,6 +1,6 @@
-// Copy the Supabase Project URL and anon/public key from Project Settings > API.
-// This file is public by design. NEVER put the service_role key here.
+// Supabase project configuration. Publishable key is intended for browser use.
+// Never place a service_role or secret key in this file.
 window.GRAMSUTRA_SUPABASE = {
-  url: 'https://YOUR-PROJECT.supabase.co',
-  anonKey: 'YOUR_SUPABASE_ANON_PUBLIC_KEY'
+  url: 'https://wlejzycnsobfeyvgjhej.supabase.co',
+  anonKey: 'sb_publishable_X_xKEqi0ZnFgXKuUjznJAA_Es-8_hup'
 };
