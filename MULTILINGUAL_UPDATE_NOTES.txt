@@ -1,0 +1,19 @@
+GRAMSUTRA AI — FULL-APP LANGUAGE SELECTION UPDATE
+
+What changed
+- Added a full-app localization runtime for all 13 language choices already offered in the profile/login selector: English, Hindi, Bengali, Telugu, Marathi, Tamil, Gujarati, Kannada, Malayalam, Punjabi, Odia, Assamese and Urdu.
+- Selecting a language in the login/profile dialog now applies it across visible interface text, navigation, forms, buttons, placeholders, labels, dashboard cards, feature screens and dynamically generated interface messages.
+- The selected language is saved in the existing local profile and restored on later visits. Urdu switches the document to right-to-left direction.
+- Dynamic text is monitored so newly rendered interface elements are translated as the user moves through the app.
+- Farmer-authored chat/community messages and editable fields are excluded from automatic UI translation.
+- Added a server-side /api/translate endpoint. Groq API credentials remain on the server and are never exposed to the browser; Gemini is an optional fallback. Translation results are cached in the browser for repeat visits.
+- Updated the service-worker shell cache to include the language runtime.
+
+Required deployment setting
+- Set GROQ_API_KEY in the Node server/Render environment. The translation endpoint uses the same server-side Groq key as Pragati AI. Gemini can be used as an optional fallback by setting GEMINI_API_KEY. Do not put this key in public/ or any browser file.
+- Deploy the complete Node project, not only the public folder, so /api/translate is available.
+- The app must be online for first-time translations. Previously translated UI strings are cached on the device and can be reused later.
+
+Important quality note
+- This is AI-assisted interface translation, not a human-certified translation. Review critical agricultural, safety, legal and financial wording with fluent speakers before public production use. AI-generated advice continues to be requested in the selected language separately.
+- If the server key is missing, the translation endpoint reports a visible status message instead of silently pretending the app was translated.

@@ -1,0 +1,25 @@
+GRAMSUTRA AI — LOGO UPDATE DEPLOYMENT
+
+WEB / RENDER
+1. Commit and push the contents of this ZIP to the same GitHub repository/branch used by Render.
+2. In Render, deploy the latest commit (not an older manual deploy).
+3. After deployment, open the site in a private/incognito window to verify the new logo.
+4. In a normal browser, hard-refresh with Ctrl+Shift+R. If installed as a PWA, remove the old home-screen shortcut and install it again if its launcher icon remains old.
+
+UPDATED WEB FILES
+- public/icon-192.png
+- public/icon-512.png
+- public/index.html (header logo, favicon, Apple touch icon, manifest link)
+- public/manifest.webmanifest
+- public/sw.js (cache version bumped to gramsutra-shell-v4)
+
+NATIVE ANDROID / IOS
+The Capacitor source assets in assets/ were updated. A Render web deployment does NOT rebuild an already-installed native Android/iOS app.
+To update a native app, run:
+  npm install
+  npm run assets
+  npx cap sync
+Then rebuild and reinstall/publish the Android/iOS app using your normal release process.
+
+SECURITY
+Keep real .env files and API keys out of Git and out of shared ZIP files.

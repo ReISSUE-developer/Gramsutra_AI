@@ -1,0 +1,22 @@
+GramSutra AI update: Home dashboard and Crop Doctor
+
+Changes in this package:
+1. Farm profile now stores total land area, unit (acres/hectares), and current crop in the existing local profile.
+2. Home dashboard reads land area and crop from that saved profile.
+3. Soil moisture remains explicitly unmeasured unless a real sensor reading is connected; no demo value is presented as a live measurement.
+4. Home temperature and rain probability use the Open-Meteo forecast after the farmer explicitly requests location-based weather. Unavailable values remain blank/dashes.
+5. The Home market-rate card now links to Market Rates, where the existing live mandi records control remains available (requires the server-side data.gov.in API key).
+6. Crop photo analysis is now inside the main Crop Doctor screen, alongside the symptom helper. Camera capture, file upload, preview, and AI analysis are kept together.
+7. Removed the duplicate/misplaced Home-page photo checker and the separate Explore-only crop photo screen.
+
+Validation performed:
+- JavaScript syntax checks passed for the main inline scripts and public/features.js.
+- HTML ID uniqueness check passed.
+
+Deployment notes:
+- Deploy the complete project to the existing Render service (not only the public folder).
+- Existing backend environment variables and provider credentials are still required for AI crop diagnosis, weather proxy, and live mandi data.
+- The Supabase publishable key is included in public/supabase-config.js. It is safe for browser use only when paired with correctly configured Supabase Row Level Security policies. Never put a service_role/secret key in frontend code.
+
+
+Full multilingual UI update: see MULTILINGUAL_UPDATE_NOTES.txt.
