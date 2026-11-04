@@ -16,7 +16,6 @@
 
   // Add the new tools to Explore without changing the primary navigation.
   const extraModules = [
-    ['cropai','📷','AI crop photo check','Upload a leaf or crop photo'],
     ['fieldhealth','🛰️','Live satellite health','Draw your field and check NDVI'],
     ['irrigation','💧','Smart irrigation','Soil moisture + rain guidance'],
     ['farmcalendar','🗓️','Farm calendar','Offline task reminders'],
@@ -30,7 +29,7 @@
     const b = document.createElement('button'); b.className='mod'; b.dataset.go=m[0];
     b.innerHTML=`<span>${m[1]}</span><b>${m[2]}</b><small>${m[3]}</small>`; hub.appendChild(b);
   });
-  ['cropai','fieldhealth','irrigation','farmcalendar','marketplace','schemes'].forEach(id => {
+  ['fieldhealth','irrigation','farmcalendar','marketplace','schemes'].forEach(id => {
     const s=$f(id); if(s && !s.querySelector('.back')) { const b=document.createElement('button');b.className='back';b.textContent='← All features';b.dataset.go='hub';s.prepend(b); }
   });
 
