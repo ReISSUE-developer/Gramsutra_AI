@@ -16,6 +16,7 @@
 
   // Add the new tools to Explore without changing the primary navigation.
   const extraModules = [
+    ['cropai','📷','AI crop photo check','Upload a leaf or crop photo'],
     ['fieldhealth','🛰️','Live satellite health','Draw your field and check NDVI'],
     ['irrigation','💧','Smart irrigation','Soil moisture + rain guidance'],
     ['farmcalendar','🗓️','Farm calendar','Offline task reminders'],
@@ -29,7 +30,7 @@
     const b = document.createElement('button'); b.className='mod'; b.dataset.go=m[0];
     b.innerHTML=`<span>${m[1]}</span><b>${m[2]}</b><small>${m[3]}</small>`; hub.appendChild(b);
   });
-  ['fieldhealth','irrigation','farmcalendar','marketplace','schemes'].forEach(id => {
+  ['cropai','fieldhealth','irrigation','farmcalendar','marketplace','schemes'].forEach(id => {
     const s=$f(id); if(s && !s.querySelector('.back')) { const b=document.createElement('button');b.className='back';b.textContent='← All features';b.dataset.go='hub';s.prepend(b); }
   });
 
@@ -279,6 +280,71 @@
   // Keep feature modules initialized when Pragati AI opens them through an app tool.
   const baseShow=typeof show==='function'?show:null;
   if(baseShow){show=function(id){baseShow(id);if(id==='fieldhealth')setTimeout(loadLeaflet,140);if(id==='marketplace')loadListings();};}
+
+  // App-wide voice control: the floating microphone works from every screen.
+  (function initAppWideVoice(){
+    const button=$f('gsVoiceButton'), status=$f('gsVoiceStatus');
+    if(!button||!status)return;
+    const Recognition=window.SpeechRecognition||window.webkitSpeechRecognition;
+    const voiceLocales={English:'en-IN',Hindi:'hi-IN',Bengali:'bn-IN',Telugu:'te-IN',Marathi:'mr-IN',Tamil:'ta-IN',Gujarati:'gu-IN',Kannada:'kn-IN',Malayalam:'ml-IN',Punjabi:'pa-IN',Odia:'or-IN',Assamese:'as-IN',Urdu:'ur-IN'};
+    let recognizer=null;
+    const showStatus=(message)=>{status.textContent=message;status.classList.add('show');};
+    const hideStatus=()=>status.classList.remove('show');
+    const norm=value=>String(value||'').toLocaleLowerCase().normalize('NFKC').replace(/[.,!?।؛:]/g,' ').replace(/\s+/g,' ').trim();
+    const routes=[
+      {id:'home',names:['home','dashboard','होम','मुख्य पृष्ठ','হোম','హోమ్','முகப்பு','मुख्यपृष्ठ','મુખ્ય પાનું','ಮುಖಪುಟ','ഹോം','ਮੁੱਖ ਪੰਨਾ','ମୁଖ୍ୟ ପୃଷ୍ଠା','হোম','ہوم']},
+      {id:'weather',names:['weather','forecast','मौसम','আবহাওয়া','వాతావరణం','வானிலை','हवामान','હવામાન','ಹವಾಮಾನ','കാലാവസ്ഥ','ਮੌਸਮ','ପାଣିପାଗ','موسم']},
+      {id:'crop',names:['crop doctor','crop diagnosis','diagnose crop','फसल डॉक्टर','फसल की बीमारी','শস্য রোগ','పంట వైద్యుడు','பயிர் மருத்துவர்','पीक डॉक्टर','પાક ડૉક્ટર','ಬೆಳೆ ವೈದ್ಯ','വിള ഡോക്ടർ','ਫਸਲ ਡਾਕਟਰ','ଫସଲ ଡାକ୍ତର','فصل ڈاکٹر']},
+      {id:'market',names:['market rates','mandi rates','market price','मंडी भाव','बाजार भाव','বাজার দর','మార్కెట్ ధరలు','சந்தை விலை','बाजारभाव','બજાર ભાવ','ಮಾರುಕಟ್ಟೆ ಬೆಲೆ','വിപണി വില','ਮੰਡੀ ਭਾਅ','ମଣ୍ଡି ଦର','منڈی ریٹ']},
+      {id:'biz',names:['business','farm business','calculator','व्यवसाय','खेती का हिसाब','ব্যবসা','వ్యాపారం','வணிகம்','व्यवसाय','ધંધો','ವ್ಯವಹಾರ','ബിസിനസ്','ਕਾਰੋਬਾਰ','ବ୍ୟବସାୟ','کاروبار']},
+      {id:'hub',names:['explore','all features','features','एक्सप्लोर','सभी फीचर','অন্বেষণ','అన్వేషించండి','ஆராயுங்கள்','शोधा','અન્વેષણ','ಅನ್ವೇಷಿಸಿ','പര്യവേക്ഷണം','ਖੋਜੋ','ଅନୁସନ୍ଧାନ','دریافت']},
+      {id:'sat',names:['satellite map','satellite','उपग्रह नक्शा','স্যাটেলাইট মানচিত্র','ఉపగ్రహ మ్యాప్','செயற்கைக்கோள் வரைபடம்','उपग्रह नकाशा','સેટેલાઇટ નકશો','ಉಪಗ್ರಹ ನಕ್ಷೆ','ഉപഗ്രഹ ഭൂപടം','ਸੈਟੇਲਾਈਟ ਨਕਸ਼ਾ','ଉପଗ୍ରହ ମାନଚିତ୍ର','سیٹلائٹ نقشہ']},
+      {id:'gis',names:['my fields','field map','खेत का नक्शा','আমার জমি','నా పొలాలు','என் வயல்கள்','माझी शेते','મારું ખેતર','ನನ್ನ ಹೊಲಗಳು','എന്റെ വയലുകൾ','ਮੇਰੇ ਖੇਤ','ମୋ କ୍ଷେତ','میرے کھیت']},
+      {id:'coop',names:['cooperative','co-op','सहकारी','সমবায়','సహకార','கூட்டுறவு','सहकारी संस्था','સહકારી','ಸಹಕಾರಿ','സഹകരണം','ਸਹਿਕਾਰੀ','ସମବାୟ','کوآپریٹو']},
+      {id:'robot',names:['robot','tractor robot','रोबोट','রোবট','రోబోట్','ரோபோ','रोबोट','રોબોટ','ರೋಬೋಟ್','റോബോട്ട്','ਰੋਬੋਟ','ରୋବଟ୍','روبوٹ']},
+      {id:'ask',names:['pragati ai','ask ai','assistant','chatbot','प्रगति एआई','प्रगति','প্রগতি এআই','ప్రగతి ఏఐ','பிரகதி ஏஐ','प्रगती एआय','પ્રગતિ એઆઈ','ಪ್ರಗತಿ ಎಐ','പ്രഗതി എഐ','ਪ੍ਰਗਤੀ ਏਆਈ','پراگتی اے آئی']},
+      {id:'community',names:['community','chat','connections','समुदाय','समुदाय चैट','সম্প্রদায়','కమ్యూనిటీ','சமூகம்','समुदाय','સમુદાય','ಸಮುದಾಯ','കമ്മ്യൂണിറ്റി','ਭਾਈਚਾਰਾ','ସମ୍ପ୍ରଦାୟ','کمیونٹی']},
+      {id:'cropai',names:['ai crop photo check','crop photo','photo diagnosis','फसल की फोटो','फसल फोटो जांच','শস্যের ছবি','పంట ఫోటో','பயிர் புகைப்படம்','पीक फोटो','પાકનો ફોટો','ಬೆಳೆ ಫೋಟೋ','വിളയുടെ ഫോട്ടോ','ਫਸਲ ਦੀ ਫੋਟੋ','ଫସଲ ଫଟୋ','فصل کی تصویر']},
+      {id:'fieldhealth',names:['live satellite health','field health','ndvi','खेत की सेहत','जमीन की सेहत','জমির স্বাস্থ্য','పొలం ఆరోగ్యం','வயல் ஆரோக்கியம்','शेत आरोग्य','ખેતરની તંદુરસ્તી','ಹೊಲದ ಆರೋಗ್ಯ','വയലിന്റെ ആരോഗ്യം','ਖੇਤ ਦੀ ਸਿਹਤ','କ୍ଷେତ ସ୍ୱାସ୍ଥ୍ୟ','کھیت کی صحت']},
+      {id:'irrigation',names:['irrigation','water advice','सिंचाई','पानी की सलाह','সেচ','నీటిపారుదల','நீர்ப்பாசனம்','सिंचन','સિંચાઈ','ನೀರಾವರಿ','ജലസേചനം','ਸਿੰਚਾਈ','ଜଳସେଚନ','آبپاشی']},
+      {id:'farmcalendar',names:['farm calendar','calendar','reminders','खेती कैलेंडर','कृषि कैलेंडर','কৃষি ক্যালেন্ডার','వ్యవసాయ క్యాలెండర్','பண்ணை நாட்காட்டி','शेती दिनदर्शिका','ખેતી કેલેન્ડર','ಕೃಷಿ ಕ್ಯಾಲೆಂಡರ್','കൃഷി കലണ്ടർ','ਖੇਤੀ ਕੈਲੰਡਰ','କୃଷି କ୍ୟାଲେଣ୍ଡର','فارم کیلنڈر']},
+      {id:'marketplace',names:['marketplace','sell produce','rent equipment','किसान बाजार','किसान मार्केटप्लेस','কৃষক বাজার','రైతు మార్కెట్','விவசாய சந்தை','शेतकरी बाजार','ખેડૂત બજાર','ರೈತರ ಮಾರುಕಟ್ಟೆ','കർഷക വിപണി','ਕਿਸਾਨ ਮੰਡੀ','ଚାଷୀ ବଜାର','کسان مارکیٹ']},
+      {id:'schemes',names:['government schemes','schemes','सरकारी योजना','योजनाएं','সরকারি প্রকল্প','ప్రభుత్వ పథకాలు','அரசு திட்டங்கள்','सरकारी योजना','સરકારી યોજનાઓ','ಸರ್ಕಾರಿ ಯೋಜನೆಗಳು','സർക്കാർ പദ്ധതികൾ','ਸਰਕਾਰੀ ਯੋਜਨਾਵਾਂ','ସରକାରୀ ଯୋଜନା','سرکاری اسکیمیں']}
+    ];
+    function openVoiceRoute(id){
+      if(typeof show!=='function')return false;
+      show(id);if(typeof render==='function')render();window.scrollTo({top:0,behavior:'smooth'});
+      showStatus('Opening '+(routes.find(r=>r.id===id)?.names[0]||id)+'.');return true;
+    }
+    function handleTranscript(transcript){
+      const spoken=norm(transcript);
+      if(!spoken)return;
+      showStatus('Heard: '+transcript);
+      // Match the most specific phrase first to avoid confusing marketplace with market rates.
+      const matches=[];
+      routes.forEach(route=>route.names.forEach(name=>{const key=norm(name);if(key&&spoken.includes(key))matches.push({id:route.id,length:key.length});}));
+      matches.sort((a,b)=>b.length-a.length);
+      if(matches.length){openVoiceRoute(matches[0].id);return;}
+      if($f('modal')&&!$f('modal').hidden){showStatus('Please finish login first, then use voice commands across GramSutra.');return;}
+      if($f('q')&&typeof send==='function'){
+        show('ask');if(typeof render==='function')render();$f('q').value=transcript;send(transcript).catch(()=>{});
+        showStatus('Sending your question to Pragati AI…');return;
+      }
+      showStatus('I heard you, but could not match that command. Try “open Crop Doctor” or ask Pragati AI.');
+    }
+    button.addEventListener('click',()=>{
+      if(!Recognition){showStatus('Voice recognition is not supported in this browser. Try an updated Chrome browser, or use Pragati AI by typing.');return;}
+      if(recognizer){try{recognizer.stop();}catch(_){}recognizer=null;button.setAttribute('aria-pressed','false');button.textContent='🎤';showStatus('Voice listening stopped.');return;}
+      const chosen=(typeof PROF!=='undefined'&&PROF.lang)||$f('pl')?.value||'English';
+      recognizer=new Recognition();recognizer.lang=voiceLocales[chosen]||'en-IN';recognizer.interimResults=false;recognizer.maxAlternatives=1;
+      recognizer.onstart=()=>{button.setAttribute('aria-pressed','true');button.textContent='⏹';showStatus('Listening in '+chosen+'. Say a feature name or ask Pragati AI.');};
+      recognizer.onresult=e=>{const text=e.results?.[0]?.[0]?.transcript||'';handleTranscript(text);};
+      recognizer.onerror=e=>{showStatus(e.error==='not-allowed'?'Microphone permission is blocked. Allow microphone access in your browser settings.':'Could not recognise speech. Check your microphone and try again.');};
+      recognizer.onend=()=>{recognizer=null;button.setAttribute('aria-pressed','false');button.textContent='🎤';};
+      try{recognizer.start();}catch(e){recognizer=null;button.setAttribute('aria-pressed','false');button.textContent='🎤';showStatus('Could not start microphone: '+e.message);}
+    });
+    document.addEventListener('pointerdown',e=>{if(!e.target.closest('#gsVoiceButton')&&!e.target.closest('#gsVoiceStatus'))hideStatus();});
+  })();
 
   // Useful status hints and avoid presenting the illustrative dashboard values as live.
   const demoNote=document.querySelector('#home .map-note');if(demoNote)demoNote.textContent='Illustrative field-health preview · use Live satellite health to analyse a drawn field';
