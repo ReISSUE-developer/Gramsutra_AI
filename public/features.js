@@ -5,7 +5,7 @@
   const $f = id => document.getElementById(id);
   const api = (window.GRAMSUTRA_API || '').replace(/\/$/, '');
   const escF = value => String(value ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-  const langCode = {English:'en-IN',Hindi:'hi-IN',Bengali:'bn-IN',Telugu:'te-IN',Marathi:'mr-IN',Tamil:'ta-IN',Gujarati:'gu-IN',Kannada:'kn-IN',Malayalam:'ml-IN',Punjabi:'pa-IN',Odia:'or-IN',Assamese:'as-IN',Urdu:'ur-IN'};
+  const langCode = {English:'en-IN',Hindi:'hi-IN',Bengali:'bn-IN',Telugu:'te-IN',Marathi:'mr-IN',Tamil:'ta-IN',Gujarati:'gu-IN',Kannada:'kn-IN',Malayalam:'ml-IN',Punjabi:'pa-IN',Odia:'or-IN',Assamese:'as-IN',Urdu:'ur-IN',Nepali:'ne-NP',Sanskrit:'hi-IN',Sindhi:'sd-IN',Kashmiri:'ks-IN'};
   const getLang = () => {
     const lang = (typeof PROF !== 'undefined' && PROF.lang) || localStorage.getItem('gs_language') || 'Hindi';
     return lang in langCode ? lang : 'English';
@@ -96,7 +96,7 @@
       return;
     }
     if ($f('modal') && !$f('modal').hidden) {
-      if (status => $f('gsVoiceStatus')) $f('gsVoiceStatus').textContent = 'Please finish login first, then use voice commands across GramSutra.';
+      if ($f('gsVoiceStatus')) $f('gsVoiceStatus').textContent = 'Please finish login first, then use voice commands across GramSutra.';
       return;
     }
     if ($f('q') && typeof send === 'function') {
@@ -148,12 +148,15 @@
   }
 
   if (voiceButton) {
-    voiceButton.addEventListener('click', () => startListeningFor(getLang()));
+    voiceButton.addEventListener('click', () => startListeningFor(voiceLangSel?.value || getLang()));
   }
 
-  if (micButton) {
-    micButton.addEventListener('click', () => startListeningFor(getLang()));
-  }
+  if (micButton) {micButton.addEventListener('click', () => startListeningFor(voiceLangSel?.value || getLang()));}
+  const voiceLangSel=$f('gsVoiceLang'),voiceSel=$f('gsVoiceChoice'),voicePreview=$f('gsVoicePreview');
+  if(voiceLangSel){voiceLangSel.innerHTML=Object.keys(langCode).map(n=>`<option value="${escF(n)}">${escF(n)}</option>`).join('');voiceLangSel.value=getLang();voiceLangSel.addEventListener('change',()=>{try{localStorage.setItem('gs_voice_language',voiceLangSel.value)}catch(_){}})}
+  function fillVoices(){if(!voiceSel||!window.speechSynthesis)return;const vs=window.speechSynthesis.getVoices();const locale=langCode[voiceLangSel?.value||getLang()]||'en-IN';const matches=vs.filter(v=>v.lang.toLowerCase().startsWith(locale.slice(0,2).toLowerCase()));voiceSel.innerHTML=(matches.length?matches:vs).map((v,i)=>`<option value="${i}">${escF(v.name)} · ${escF(v.lang)}</option>`).join('');}
+  if(voiceSel){fillVoices();window.speechSynthesis?.addEventListener?.('voiceschanged',fillVoices);voiceLangSel?.addEventListener('change',fillVoices);voiceSel.addEventListener('change',()=>localStorage.setItem('gs_voice_choice',voiceSel.value));}
+  if(voicePreview)voicePreview.addEventListener('click',()=>{const v=window.speechSynthesis?.getVoices()?.[Number(voiceSel?.value)];const u=new SpeechSynthesisUtterance('Namaste. I am Pragati AI.');u.lang=langCode[voiceLangSel?.value||getLang()]||'en-IN';if(v)u.voice=v;window.speechSynthesis.cancel();window.speechSynthesis.speak(u)});
 
   // Keep auto-speak for AI replies when enabled.
   const originalSend = typeof send === 'function' ? send : null;
@@ -430,7 +433,7 @@
     if (micButton) {
       micButton.style.display = '';
       micButton.title = 'Speak in your selected language';
-      micButton.addEventListener('click', () => startListeningFor(getLang()));
+      micButton.addEventListener('click', () => startListeningFor(voiceLangSel?.value || getLang()));
     }
   }
 
