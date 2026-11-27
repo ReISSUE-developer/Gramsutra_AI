@@ -251,6 +251,15 @@ http.createServer(async (req, res) => {
       return json(res, timeout ? 504 : 502, { error: timeout ? 'Translation took too long. Please retry.' : 'The translation service is temporarily unreachable.' });
     }
   }
+  if (req.method === 'POST' && parsedUrl.pathname === '/api/search') {
+    if (!process.env.TAVILY_API_KEY) return json(res, 503, { error: 'Web search is not enabled yet. Add TAVILY_API_KEY in Render Environment.' });
+    let payload; try { payload = JSON.parse(await readBody(req, 20000)); } catch { return json(res,400,{error:'Invalid search request.'}); }
+    const query = safeText(payload.query, 300); if (!query) return json(res,400,{error:'Enter a search query.'});
+    try { const upstream = await fetch('https://api.tavily.com/search',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({api_key:process.env.TAVILY_API_KEY,query,search_depth:'basic',max_results:5}) ,signal:AbortSignal.timeout(20000)});
+      const data=await upstream.json(); if(!upstream.ok)return json(res,upstream.status,{error:data?.error||'Search provider error.'});
+      return json(res,200,{results:(data.results||[]).map(x=>({title:x.title,url:x.url,content:String(x.content||'').slice(0,1200)}))});
+    }catch(e){return json(res,502,{error:'Web search provider could not be reached.'});}
+  }
   if (req.method === 'POST' && parsedUrl.pathname === '/api/chat') {
     const groqKey = process.env.GROQ_API_KEY;
     const geminiKey = process.env.GEMINI_API_KEY;
