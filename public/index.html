@@ -195,6 +195,19 @@ main{max-width:none;margin:0;padding:18px 20px 96px 250px}
 @media(max-width:900px){main{padding-left:16px;padding-right:16px}.topbar{padding-left:18px}.top-location{display:none}.top-weather{margin-left:auto}.topbar .brand{position:static}#nav{display:none}nav#nav{display:none}body{padding-top:70px}.topbar{height:70px}#home{padding-top:0}#home .dash-map-layout{grid-template-columns:1fr}#home .map-panel,#home .map-panel img{min-height:330px}#home .condition-panel{display:grid;grid-template-columns:1fr 1fr;gap:0 14px}#home .condition-panel h2,#home .ai-insight{grid-column:1/-1}#home .metric-row{grid-template-columns:repeat(3,minmax(0,1fr))}#home .quick{grid-template-columns:repeat(3,minmax(0,1fr))}}
 @media(max-width:560px){main{padding:8px 10px 90px}.topbar{padding:10px 14px}.topbar .brand{font-size:22px}#home .map-panel,#home .map-panel img{min-height:260px}#home .condition-panel{display:block;padding:14px}#home .metric-row{grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}#home .metric{padding:12px}#home .metric strong{font-size:20px}#home .quick{gap:7px}#home .quick button{min-height:76px;font-size:12px}nav#nav{display:flex;position:fixed;left:0;right:0;top:auto;bottom:0;width:auto;height:auto;flex-direction:row;justify-content:space-around;padding:6px;background:#fff;border-top:1px solid #dceee1;border-right:0;z-index:20}nav#nav button{flex:1;min-height:54px;text-align:center;padding:4px 2px;font-size:11px}}
 
+
+/* GramSutra navigation refinement */
+#nav { align-items:stretch; gap:5px; padding:8px 8px calc(8px + env(safe-area-inset-bottom,0px)); z-index:40; box-shadow:0 -5px 18px rgba(15,30,50,.10); }
+#nav button { flex:1 1 0; min-width:0; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:4px; min-height:64px; padding:6px 3px; border:1px solid transparent; border-radius:13px; line-height:1.15; font-size:11px; white-space:normal; overflow-wrap:anywhere; }
+#nav button svg { display:block; width:23px; height:23px; flex:0 0 23px; margin:0 auto; }
+#nav button br { display:block; content:""; }
+#nav button[aria-selected=true] { border-color:rgba(16,185,129,.28); box-shadow:0 2px 8px rgba(16,185,129,.12); }
+#nav button:focus-visible, #homeLocate:focus-visible { outline:3px solid #34d399; outline-offset:2px; }
+#home .map-panel { isolation:isolate; }
+#homeMap { z-index:1 !important; }
+#home .map-panel .map-label, #home .map-panel .map-note { position:absolute; z-index:4 !important; pointer-events:none; }
+#homeLocate { position:absolute; z-index:10 !important; isolation:isolate; pointer-events:auto; }
+@media(max-width:480px){ #nav button{font-size:10px;min-height:58px;padding:5px 1px;gap:3px} #nav button svg{width:21px;height:21px} }
 </style>
 
 <style>
@@ -245,7 +258,27 @@ nav button svg{display:block;margin:0 auto 2px}
 </style>
 
 <link rel="manifest" href="/manifest.webmanifest">
-</head>
+<style>
+/* GramSutra premium dark theme and navigation polish */
+:root{--ink:#e6edf5;--mute:#9aabc0;--line:#34445a;--green:#10b981;--on-green:#061b14;--tint:#18352e;--gold:#e5b85c}
+body,main{background:#0b1220!important;color:#e6edf5!important}header,.topbar,#nav,.card,.home-card,.condition-panel,.task,.tile,.person,.chat-log,.map-panel,.mod,.listing,.modal,.home details,.quick button{background:#111c2d!important;color:#e6edf5!important;border-color:#293a50!important}
+.topbar{border-color:#26364b!important;box-shadow:0 3px 16px #0005!important}.topbar .brand{color:#d8f3e8!important;display:flex;gap:9px;align-items:center;font-weight:850}.gs-mark{display:inline-grid;place-items:center;width:34px;height:34px;border-radius:11px;background:linear-gradient(145deg,#10b981,#087f68);color:#05241a;font-weight:900;font-size:13px;box-shadow:0 3px 12px #10b98130}.topbar .brand small{display:block;font-size:8px;letter-spacing:1.4px;color:#9ab5ad;margin-top:2px}
+#nav{background:#0e1727!important;border-color:#25354a!important;box-shadow:0 8px 24px #0004!important}#nav button{display:flex;align-items:center;justify-content:flex-start;gap:12px;text-align:left;color:#b9c8d9;border:1px solid transparent;font-weight:650}#nav button svg{width:21px;height:21px;flex:0 0 21px}#nav button[aria-selected=true]{background:linear-gradient(110deg,#087f68,#10b981)!important;color:#041b14!important;border-color:#34d399!important;box-shadow:0 4px 14px #10b98125}
+#homeLocate{z-index:99999!important;position:absolute!important;isolation:isolate!important;background:#0c1728!important;color:#ecf7f3!important;border:1px solid #34d399!important;box-shadow:0 8px 24px #0009!important;transform:translateZ(0)}#home .map-panel{isolation:isolate;overflow:hidden}#homeMap{z-index:1!important}#home .map-label,#home .map-note{z-index:3;background:#0b1425eF!important;color:#edf5ff!important;border:1px solid #354a64!important}#home .map-label{max-width:calc(100% - 32px)}
+.hero{background:linear-gradient(135deg,#0d6650,#0c8b70,#123d54)!important}.hero:after{opacity:.06!important}.quick button span{color:#34d399}.tile b{color:#e6edf5!important}.btn{background:#15283b!important;color:#dce9f6!important;border-color:#39516a!important}.btn.primary{background:#10b981!important;color:#05251a!important;border-color:#34d399!important}.chat-bubble{background:#183346!important;color:#e9f3fc!important}.chat-bubble.mine{background:#135a49!important;color:#effff8!important}.field input,.field textarea,input,select,textarea{background:#101b2b!important;color:#e6edf5!important;border-color:#34465c!important}.note,.why,.meta,small{color:#9aabc0!important}.status{background:#182b3e!important;color:#d9e8f5!important}.people-list,.call-videos video{background:#0e1727!important}.map-panel #homeLocate{font-weight:750}
+.voice-settings{position:fixed;right:16px;bottom:calc(150px + env(safe-area-inset-bottom,0px));z-index:19;display:none;background:#111c2d;border:1px solid #35465b;border-radius:14px;padding:10px;max-width:220px;color:#e6edf5}.voice-settings.show{display:grid;gap:6px}.voice-settings select{max-width:200px}.
+@media(max-width:560px){#nav button{justify-content:center;text-align:center;flex-direction:column;gap:3px;padding:4px 2px!important}#nav button br{display:none}.topbar .brand small{display:none}#homeLocate{bottom:40px!important}}
+</style><style>
+/* GramSutra premium dark theme and navigation polish */
+:root{--ink:#e6edf5;--mute:#9aabc0;--line:#34445a;--green:#10b981;--on-green:#061b14;--tint:#18352e;--gold:#e5b85c}
+body,main{background:#0b1220!important;color:#e6edf5!important}header,.topbar,#nav,.card,.home-card,.condition-panel,.task,.tile,.person,.chat-log,.map-panel,.mod,.listing,.modal,.home details,.quick button{background:#111c2d!important;color:#e6edf5!important;border-color:#293a50!important}
+.topbar{border-color:#26364b!important;box-shadow:0 3px 16px #0005!important}.topbar .brand{color:#d8f3e8!important;display:flex;gap:9px;align-items:center;font-weight:850}.gs-mark{display:inline-grid;place-items:center;width:34px;height:34px;border-radius:11px;background:linear-gradient(145deg,#10b981,#087f68);color:#05241a;font-weight:900;font-size:13px;box-shadow:0 3px 12px #10b98130}.topbar .brand small{display:block;font-size:8px;letter-spacing:1.4px;color:#9ab5ad;margin-top:2px}
+#nav{background:#0e1727!important;border-color:#25354a!important;box-shadow:0 8px 24px #0004!important}#nav button{display:flex;align-items:center;justify-content:flex-start;gap:12px;text-align:left;color:#b9c8d9;border:1px solid transparent;font-weight:650}#nav button svg{width:21px;height:21px;flex:0 0 21px}#nav button[aria-selected=true]{background:linear-gradient(110deg,#087f68,#10b981)!important;color:#041b14!important;border-color:#34d399!important;box-shadow:0 4px 14px #10b98125}
+#homeLocate{z-index:99999!important;position:absolute!important;isolation:isolate!important;background:#0c1728!important;color:#ecf7f3!important;border:1px solid #34d399!important;box-shadow:0 8px 24px #0009!important;transform:translateZ(0)}#home .map-panel{isolation:isolate;overflow:hidden}#homeMap{z-index:1!important}#home .map-label,#home .map-note{z-index:3;background:#0b1425eF!important;color:#edf5ff!important;border:1px solid #354a64!important}#home .map-label{max-width:calc(100% - 32px)}
+.hero{background:linear-gradient(135deg,#0d6650,#0c8b70,#123d54)!important}.hero:after{opacity:.06!important}.quick button span{color:#34d399}.tile b{color:#e6edf5!important}.btn{background:#15283b!important;color:#dce9f6!important;border-color:#39516a!important}.btn.primary{background:#10b981!important;color:#05251a!important;border-color:#34d399!important}.chat-bubble{background:#183346!important;color:#e9f3fc!important}.chat-bubble.mine{background:#135a49!important;color:#effff8!important}.field input,.field textarea,input,select,textarea{background:#101b2b!important;color:#e6edf5!important;border-color:#34465c!important}.note,.why,.meta,small{color:#9aabc0!important}.status{background:#182b3e!important;color:#d9e8f5!important}.people-list,.call-videos video{background:#0e1727!important}.map-panel #homeLocate{font-weight:750}
+.voice-settings{position:fixed;right:16px;bottom:calc(150px + env(safe-area-inset-bottom,0px));z-index:19;display:none;background:#111c2d;border:1px solid #35465b;border-radius:14px;padding:10px;max-width:220px;color:#e6edf5}.voice-settings.show{display:grid;gap:6px}.voice-settings select{max-width:200px}.
+@media(max-width:560px){#nav button{justify-content:center;text-align:center;flex-direction:column;gap:3px;padding:4px 2px!important}#nav button br{display:none}.topbar .brand small{display:none}#homeLocate{bottom:40px!important}}
+</style></head>
 <body>
 <div class="mbg" id="modal" hidden role="dialog" aria-modal="true" aria-labelledby="mt"><div class="mbox">
  <div id="lv"><h2 id="mt">Welcome to GramSutra</h2><p class="note">Create your profile so Pragati AI can help you by name. Demo login: no password yet, saved only on this phone.</p>
@@ -261,10 +294,10 @@ nav button svg{display:block;margin:0 auto 2px}
 </div></div>
 <div id="splash" role="status" aria-label="Loading GramSutra AI"><img class="logo" src="/icon-192.png" alt="" style="background:none;width:96px;height:96px;border-radius:24px"><h1>GramSutra AI</h1><p>Your village, your farm, one plan</p><div class="bar"><i></i></div></div>
 <button id="gsVoiceButton" type="button" aria-label="Start voice command" aria-pressed="false" title="Tap to speak a command">🎤</button>
-<div id="gsVoiceStatus" role="status" aria-live="polite"></div>
+<div id="gsVoiceStatus" role="status" aria-live="polite"></div><div class="voice-settings"><button type="button" class="btn" id="gsVoiceSettingsToggle">Voice settings</button><label for="gsVoiceLang">Voice language</label><select id="gsVoiceLang"></select><label for="gsVoiceChoice">AI voice</label><select id="gsVoiceChoice"></select><button type="button" class="btn" id="gsVoicePreview">Preview voice</button></div><div class="voice-settings"><button type="button" class="btn" id="gsVoiceSettingsToggle">Voice settings</button><label for="gsVoiceLang">Voice language</label><select id="gsVoiceLang"></select><label for="gsVoiceChoice">AI voice</label><select id="gsVoiceChoice"></select><button type="button" class="btn" id="gsVoicePreview">Preview voice</button></div>
 <nav role="tablist" id="nav"></nav>
 <main>
-<div class="topbar"><div class="brand">🌿 GramSutra</div><div class="top-location">📍 <span id="top-village">Set your village</span></div><div class="top-weather">🌤️ <b>--°C</b><small>Live weather not loaded</small></div><button id="pbtn" aria-label="Log in"></button></div>
+<div class="topbar"><div class="brand"><span class="gs-mark">GS</span><span>GramSutra <small>RURAL INTELLIGENCE</small></span></div><div class="top-location">📍 <span id="top-village">Set your village</span></div><div class="top-weather">🌤️ <b>--°C</b><small>Live weather not loaded</small></div><button id="pbtn" aria-label="Log in"></button></div>
 
 <section id="home">
   <div class="greet" id="greet"></div>
@@ -282,7 +315,7 @@ nav button svg{display:block;margin:0 auto 2px}
   </div>
   <h3 class="sech">⚡ Quick access</h3>
   <div class="quick" id="quick"></div>
-  <div class="card photo" id="photoCard"><h2>📸 Check my crop photo</h2>
+  <div class="card photo" id="photoCard"><h2>📸 Check my crop photo</h2><button class="btn primary" type="button" id="homeCropTransfer">Send photo to Crop Doctor</button><button class="btn primary" type="button" id="homeCropTransfer">Send photo to Crop Doctor</button>
    <p class="note">Take or choose a clear photo of one leaf or plant. The AI tells you if it looks healthy.</p>
    <label for="hcCrop">Crop (optional)</label><input id="hcCrop" placeholder="e.g. tomato, wheat, rice">
    <label for="hcNotes">What do you notice? (optional)</label><input id="hcNotes" placeholder="e.g. yellow spots since 3 days">
@@ -368,7 +401,7 @@ nav button svg{display:block;margin:0 auto 2px}
  <div class="card"><h2>🤖 Ask Pragati AI</h2>
  <p><b>Pragati AI: Your Farming Companion</b></p>
  <p class="note">Ask in English or Hindi, or tap 🎤 and speak. I can check your farm, compare buyers, open screens and change the app for you. I give guidance only.</p>
- <div id="msgs" class="msgs" aria-live="polite"></div>
+ <div style="display:flex;gap:8px;margin:6px 0"><button class="btn" id="chatHistory">🕘 Restore chat</button><button class="btn" id="regen">↻ Regenerate</button><button class="btn" id="clearChat">🗑 Clear</button></div><div id="msgs" class="msgs" aria-live="polite"></div>
  <div class="ask"><input id="q" placeholder="Type your question" aria-label="Your question"><button id="mic" class="back" style="margin:0" aria-label="Speak your question">🎤</button><button id="go">Send</button></div></div>
 </section>
 
@@ -439,7 +472,7 @@ nav button svg{display:block;margin:0 auto 2px}
 <section id="farmcalendar">
  <div class="card"><h2>🗓️ My farm calendar</h2><p class="note">Tasks are saved on this device and work offline. When you sign in, GramSutra can sync them to your account.</p>
   <div class="row"><div><label for="taskTitle">Task</label><input id="taskTitle" placeholder="e.g. Inspect north field"></div><div><label for="taskDate">Due date</label><input id="taskDate" type="date"></div><div><label for="taskCategory">Type</label><select id="taskCategory"><option>Field inspection</option><option>Irrigation</option><option>Fertilizer</option><option>Pest monitoring</option><option>Sowing</option><option>Harvest</option><option>Market / sale</option><option>Other</option></select></div></div>
-  <button class="btn primary" id="taskAdd">Add reminder</button><button class="btn" id="taskNotify">Enable due-task alerts</button><div id="taskStatus" class="note"></div><div id="taskList" style="margin-top:12px"></div><div class="card" style="margin-top:14px"><h3>📌 Saved Pragati AI advice</h3><p class="note">Bookmark useful answers so they remain available offline on this device.</p><div id="savedAdviceList"></div></div>
+  <button class="btn primary" id="taskAdd">Add reminder</button><button class="btn" id="taskNotify">Enable due-task alerts</button><div id="taskStatus" class="note"></div><div id="taskList" style="margin-top:12px"></div><div class="task-templates"><h3>Suggested daily routine</h3><button class="btn" type="button" data-task-template="Check soil moisture and inspect leaves">🌱 Check soil & leaves</button> <button class="btn" type="button" data-task-template="Check local forecast and drainage">🌦️ Check forecast</button> <button class="btn" type="button" data-task-template="Inspect field boundary and crop stress">🛰️ Field inspection</button></div><div class="task-templates"><h3>Suggested daily routine</h3><button class="btn" type="button" data-task-template="Check soil moisture and inspect leaves">🌱 Check soil & leaves</button> <button class="btn" type="button" data-task-template="Check local forecast and drainage">🌦️ Check forecast</button> <button class="btn" type="button" data-task-template="Inspect field boundary and crop stress">🛰️ Field inspection</button></div><div class="card" style="margin-top:14px"><h3>📌 Saved Pragati AI advice</h3><p class="note">Bookmark useful answers so they remain available offline on this device.</p><div id="savedAdviceList"></div></div>
  </div>
 </section>
 <section id="marketplace">
@@ -555,7 +588,7 @@ document.body.addEventListener('click',e=>{const g=e.target.closest('[data-go]')
 ['weather','crop','market','biz','sat','gis','coop','robot'].forEach(id=>{const b=document.createElement('button');b.className='back';b.textContent='← All features';b.dataset.go='hub';$(id).prepend(b)});
 let slm='obs';
 function renderSat(){const W=10,H=6,s=30;let o='';for(let j=0;j<H;j++)for(let i=0;i<W;i++){const pond=i>=7&&i<=8&&j>=3&&j<=4,road=j==5,v=(Math.sin(i*1.7+j*2.3)+1)/2;const c=pond?'#4a90c2':road?'#b9b4a6':`hsl(${85+v*45},50%,${30+v*22}%)`;o+=`<rect x="${i*s}" y="${j*s}" width="${s}" height="${s}" fill="${c}"/>`}
- if(slm=='ai'){let r='';for(let k=0;k<30;k++)r+=`<line x1="0" x2="300" y1="${k*6+3}" y2="${k*6+3}" stroke="#fff" stroke-opacity=".1"/>`;o=`<g filter="url(#bl)">${o}</g>`+r}
+ if(slm=='ai'){let r='';o=`<g filter="url(#bl)">${o}</g>`}
  $('svg').innerHTML='<defs><filter id="bl"><feGaussianBlur stdDeviation="6"/></filter></defs>'+o+(slm=='ai'?'<text x="8" y="14" font-size="10" fill="#fff" stroke="#000" stroke-width=".4">AI-generated enhancement</text>':'');
  $('slnote').textContent=slm=='ai'?'This view is made by a model to look sharper. It is not ground truth. Do not use it to measure your field.':'Observed satellite pixels. Darker green means denser plants (sample data).';
  document.querySelectorAll('[data-sl]').forEach(b=>b.setAttribute('aria-pressed',b.dataset.sl==slm))}
@@ -579,14 +612,22 @@ $('ngrid').onclick=e=>{const k=e.target.dataset.c;if(k&&k!='0,0'&&k!='9,6'){bloc
 renderSat();renderGis();renderFaq();renderGroup();renderNav();
 const PERSONA=`You are Pragati AI, the farmer’s Cropping Partner: an experienced, warm and practical farm companion from Rampur village, like a trusted elder brother (bhaiya). Say Namaste when greeting. Keep answers short and simple: give the answer first, then one to three clear next steps. Ask at most one question, only if you truly need it. Be encouraging and honest about uncertainty.
 What you know. Tomato: when rain or a long trip is coming, harvest at the pink (breaker) stage instead of waiting for full red. Heavy rain cracks fruit and spreads fungal disease such as early and late blight, so keep drainage channels clear and stake plants. Harvest in the cool morning, handle gently, grade by ripeness and carry in crates, not sacks. Ripe tomatoes last 1 to 2 days in shade; mature green ones 1 to 2 weeks if kept cool. Yellow leaves can mean nutrient shortage, waterlogging, pests or water stress, so never diagnose from one photo. Selling: compare net return in hand, not the headline price; group selling lowers transport cost per kg; check the mandi price in the morning. Limits: you never give pesticide names or doses, you send crop problems to the local agriculture officer or Krishi Vigyan Kendra, the village map is not a legal land title, and cooperative answers are sample information to confirm with the registrar. You can use tools to read and change the app, open screens (weather, crop, market, biz, sat, gis, coop, robot, crop photo review, live field health, irrigation, farm calendar, marketplace, government schemes), look up plots, set group selling and add flooded spots on the robot route demo.`;
-const SYS=PERSONA+' Reply in the language the farmer writes in (English or Hindi), in short simple sentences. Always use the tools to get real numbers and to take actions; never invent prices or forecasts. If the forecast feed is disconnected, say the forecast is unavailable and point to the official IMD site. You give decision support only: never recommend pesticides or chemicals from symptoms alone, and send crop problems to the local agriculture officer. When you change something in the app, say what you changed.';
+const SYS=PERSONA+' You are also a capable general-purpose AI assistant, not a narrow chatbot. Help with education, science, coding, mathematics, writing, analysis, creative work, technology and everyday questions as well as agriculture. Give thoughtful, well-structured answers, use Markdown headings/lists/tables/code when helpful, explain complex ideas step by step, and use conversation context for follow-ups. Answer directly without unnecessary brevity; adapt length to the question. Be honest about uncertainty and never invent facts. '+ ' Reply in the language the farmer writes in (English or Hindi), Always use the tools to get real numbers and to take actions; never invent prices or forecasts. If the forecast feed is disconnected, say the forecast is unavailable and point to the official IMD site. You give decision support only: never recommend pesticides or chemicals from symptoms alone, and send crop problems to the local agriculture officer. When you change something in the app, say what you changed.';
 const chat=[];let curOut=null;
+const CHAT_KEY='gram sutra_pragati_chat_v2';
+function persistChat(){try{localStorage.setItem(CHAT_KEY,JSON.stringify(chat.slice(-60)))}catch(e){}}
+function restoreChat(){try{const saved=JSON.parse(localStorage.getItem(CHAT_KEY)||'[]');if(Array.isArray(saved)&&saved.length){chat.splice(0,chat.length,...saved);$('msgs').innerHTML='';saved.forEach(m=>addMsg(m.role==='user'?'me':'bot',String(m.content||'')));return true}}catch(e){}return false}
+$('chatHistory')?.addEventListener('click',()=>{if(!restoreChat())addMsg('bot','No saved conversation found on this device.')});
+$('clearChat')?.addEventListener('click',()=>{chat.splice(0);localStorage.removeItem(CHAT_KEY);$('msgs').innerHTML='';addMsg('bot','Chat cleared. Ask me anything!')});
+$('regen')?.addEventListener('click',()=>{if(chat.length<2||chat[chat.length-1].role!=='assistant'){addMsg('bot','Send a question first, then regenerate the reply.');return}chat.pop();const last=chat.pop();persistChat();send(last.content)});
+
 function addMsg(c,t,before){const d=document.createElement('div');d.className='msg '+c;d.textContent=t;before?$('msgs').insertBefore(d,before):$('msgs').appendChild(d);d.scrollIntoView({block:'nearest'});return d}
 const note=t=>addMsg('tool','🔧 '+t,curOut);
 function situ(){const feed=$('feed').value=='1';return{farmer:{name:PROF.name||null,village:PROF.village||null,role:PROF.role||null,language:PROF.lang||null},forecast_feed:feed?'connected':'disconnected',rain_risk_percent:feed?+$('rain').value:null,crop_stage:$('stage').value,quantity_kg:+$('qty').value,buyers:buyers.map(b=>({name:b.n,price_per_kg:b.p,transport:b.t,handling:b.h,net_return:net(b)})),best_buyer:best().n,action_plan:(window.PLAN||[]).map(t=>({priority:t[0],task:t[1],reason:t[2]}))}}
 const CAUSES={old:'nutrient shortage (often nitrogen)',wet:'waterlogging or root rot',bug:'pests such as mites or whitefly',spot:'a fungal leaf disease such as early blight',dry:'water stress'};
 const O=(p,r)=>({type:'object',properties:p,required:r||[]});
 const tools=[
+{name:'search_web',description:'Search the web for current information. Use for questions about latest news, current facts, products, events, regulations, or sources. If search is unavailable, clearly tell the user.',inputSchema:O({query:{type:'string'}},['query']),execute:async i=>{const r=await fetch((window.GRAMSUTRA_API||'')+'/api/search',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({query:i.query})});const d=await r.json();if(!r.ok)return{error:d.error||'Search unavailable'};return d.results||[]}},
 {name:'get_current_situation',description:'Get the current rain risk, crop stage, forecast feed status, quantity, buyer offers with net returns, best buyer and the prioritized action plan shown in the app.',inputSchema:O({}),execute:async()=>{note('Checked your farm situation');return situ()}},
 {name:'set_farm_inputs',description:'Change app inputs and refresh the action plan. Use when the farmer tells you new facts (rain risk, crop stage, quantity, feed status).',inputSchema:O({rain_risk_percent:{type:'number'},crop_stage:{type:'string',enum:['mature','flower','young']},quantity_kg:{type:'number'},forecast_feed:{type:'string',enum:['connected','disconnected']}}),execute:async i=>{
  if(i.rain_risk_percent!=null)$('rain').value=Math.max(0,Math.min(100,i.rain_risk_percent));
@@ -607,7 +648,7 @@ const tools=[
 {name:'toggle_flooded_spot',description:'Add or remove a flooded spot on the robot route demo grid (x 1 to 10, y 1 to 7) and report the route.',inputSchema:O({x:{type:'number'},y:{type:'number'}},['x','y']),execute:async i=>{const k=(i.x-1)+','+(i.y-1);if(k=='0,0'||k=='9,6'||i.x<1||i.x>10||i.y<1||i.y>7)return{error:'Choose another square in x 1-10, y 1-7, not start or goal'};blocked.has(k)?blocked.delete(k):blocked.add(k);renderNav();const r=route();note('Changed flooded spot '+i.x+','+i.y);return{route_found:!!r,steps:r?r.size-1:null}}}
 ];
 async function send(txt){
- txt=(txt||$('q').value).trim();if(!txt)return;$('q').value='';addMsg('me',txt);chat.push({role:'user',content:txt});
+ txt=(txt||$('q').value).trim();if(!txt)return;$('q').value='';addMsg('me',txt);chat.push({role:'user',content:txt});persistChat();
  curOut=addMsg('bot','Thinking…');$('go').disabled=true;
  const msgs=chat.map(m=>({role:m.role,content:m.content}));
  try{
@@ -625,7 +666,7 @@ async function send(txt){
    for(const u of uses){const tl=tools.find(x=>x.name==u.name);let out;try{out=await tl.execute(u.input)}catch(e){out={error:String(e)}}results.push({type:'tool_result',tool_use_id:u.id,content:JSON.stringify(out)})}
    msgs.push({role:'user',content:results});
   }
-  curOut.textContent=text||'…';chat.push({role:'assistant',content:text});
+  curOut.textContent=text||'…';chat.push({role:'assistant',content:text});persistChat();
  }catch(e){
   const why=String(e&&e.message||e||'Unknown error');
   if (e instanceof TypeError && /fetch|network|load failed/i.test(why)) {
@@ -641,7 +682,7 @@ const SR=window.SpeechRecognition||window.webkitSpeechRecognition;
 if(SR){$('mic').onclick=()=>{try{const r=new SR();r.lang='hi-IN';r.onresult=e=>{$('q').value=e.results[0][0].transcript;send()};r.onerror=()=>addMsg('bot','I couldn’t hear you. Please type your question.');r.start()}catch(e){addMsg('bot','Voice is not available here. Please type your question.')}}}else $('mic').style.display='none';
 $('go').onclick=()=>send();
 $('q').onkeydown=e=>{if(e.key=='Enter')send()};
-addMsg('bot','Namaste! I am Pragati AI, your farming companion. Ask me about your tomato crop, rain, prices, crop problems or group selling, and I will check the app and help you decide. You can also speak with the 🎤 button. Kya poochna hai?');
+if(!restoreChat())addMsg('bot','Namaste! I am Pragati AI, your general and farming assistant. Ask me anything, and I can search the web when web search is configured. You can also speak with the 🎤 button.');
 window.addEventListener('load',()=>setTimeout(()=>{$('splash').classList.add('off');setTimeout(()=>$('splash').remove(),600);setTimeout(()=>{if(!PROF.name)showLogin()},700)},1700));
 const esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 let PROF={};try{PROF=JSON.parse(localStorage.getItem('gs_profile')||'{}')||{}}catch(e){}
@@ -680,6 +721,10 @@ function shrink(file){return new Promise((ok,bad)=>{const img=new Image(),u=URL.
 let hcFile=null;$('hcTake').innerHTML=ICON.camera(26)+' Take photo';$('hcPick').innerHTML=ICON.gallery(26)+' Choose photo';
 $('hcTake').onclick=()=>$('hcCam').click();$('hcPick').onclick=()=>$('hcImg').click();
 const hcSet=e=>{const f=e.target.files[0];if(!f)return;hcFile=f;const p=$('hcPrev');p.src=URL.createObjectURL(f);p.style.display='block'};$('hcCam').onchange=hcSet;$('hcImg').onchange=hcSet;
+$('gsVoiceSettingsToggle')?.addEventListener('click',()=>document.querySelector('.voice-settings')?.classList.toggle('show'));
+$('homeCropTransfer')?.addEventListener('click',()=>{if(!hcFile){$('hcOut').innerHTML='<p class="perr">Choose or capture a crop photo first.</p>';return}const dt=new DataTransfer();dt.items.add(hcFile);$('diagnoseImage').files=dt.files;$('diagnoseImage').dispatchEvent(new Event('change',{bubbles:true}));$('diagnoseCrop').value=$('hcCrop').value;$('diagnoseNotes').value=$('hcNotes').value;show('crop');$('diagnoseStatus').textContent='Photo copied from Home. Press Analyse crop photo to continue.';scrollTo(0,0)});
+$('gsVoiceSettingsToggle')?.addEventListener('click',()=>document.querySelector('.voice-settings')?.classList.toggle('show'));
+$('homeCropTransfer')?.addEventListener('click',()=>{if(!hcFile){$('hcOut').innerHTML='<p class="perr">Choose or capture a crop photo first.</p>';return}const dt=new DataTransfer();dt.items.add(hcFile);$('diagnoseImage').files=dt.files;$('diagnoseImage').dispatchEvent(new Event('change',{bubbles:true}));$('diagnoseCrop').value=$('hcCrop').value;$('diagnoseNotes').value=$('hcNotes').value;show('crop');$('diagnoseStatus').textContent='Photo copied from Home. Press Analyse crop photo to continue.';scrollTo(0,0)});
 $('hcBtn').onclick=async()=>{const f=hcFile,o=$('hcOut');
  if(!f){o.innerHTML='<p class="perr">Please take or choose a crop photo first.</p>';return}
  o.innerHTML='<p>Checking your crop photo…</p>';$('hcBtn').disabled=true;
